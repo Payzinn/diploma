@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %} Rulance Регистрация {% endblock %}
+{% block content %}
+<div class="auth-container">
+    <h2 class="auth-title">Регистрация</h2>
+    <form method="post" class="auth-form">
+        {% csrf_token %}
+        
+        <div class="auth-form__field">
+            <label class="auth-form__label">Роль</label>
+            <select name="role" class="auth-form__select">
+                {% for value, label in form.role.field.choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if form.role.errors %}
+                <p class="error-message">{{ form.role.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        {% for field in form %}
+            {% if field.name != 'role' %}
+                <div class="auth-form__field">
+                    <input type="{{ field.field.widget.input_type }}" 
+                           name="{{ field.name }}" 
+                           placeholder="{{ field.label }}" 
+                           class="auth-form__input"
+                           required>
+                    {% if field.errors %}
+                        <p class="error-message">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <button type="submit" class="auth-button">Зарегистрироваться</button>
+    </form>
+    <p class="text-center">
+        <a href="{% url 'login' %}" class="link-secondary">Уже есть аккаунт? Войти</a>
+    </p>
+</div>
+{% endblock %}

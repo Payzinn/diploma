@@ -1,0 +1,68 @@
+{# templates/profile.html #}
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Rulance · Профиль{% endblock %}
+{% block content %}
+<div class="profile_block">
+    <div class="page_header">
+        <h2>Профиль</h2>
+    </div>
+
+  <div class="profile_block-avatar">
+
+    <form id="avatar-form" class="avatar-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" id="id_avatar" name="avatar" accept="image/*" style="display: none;">
+        <label for="id_avatar">
+          <img
+            src="{{ user.avatar.url }}"
+            alt="Аватар {{ user.username }}"
+            class="w-30 h-30 rounded-full object-cover border-4 border-blue-500 cursor-pointer"
+            id="avatar-preview"
+          >
+        </label>
+      </form>
+  </div>
+
+  <div class="account_info">
+    <p><strong>ФИО:</strong> {{ user.full_name }}</p>
+    <p><strong>Логин:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
+  </div>
+</div>
+
+<script>
+    document.getElementById('id_avatar').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+    
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('avatar-preview').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    
+      const form = document.getElementById('avatar-form');
+      const formData = new FormData(form);
+    
+      fetch("{% url 'profile' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Ошибка при загрузке');
+        return response.text();
+      })
+      .then(data => {
+        console.log("Аватар обновлён!");
+      })
+      .catch(err => {
+        console.error("Ошибка:", err);
+      });
+    });
+    </script>
+{% endblock %}

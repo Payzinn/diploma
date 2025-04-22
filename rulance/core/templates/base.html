@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="header__logo">Rulance</div>
+        <nav class="header__nav">
+            <a href="/" class="header__link {% if request.path == '/' %}active{% endif %}">Главная</a>
+            <a href="/orders/" class="header__link {% if request.path == '/orders/' %}active{% endif %}">Заказы</a>
+            <a href="/freelancers/" class="header__link {% if request.path == '/freelancers/' %}active{% endif %}">Специалисты</a>
+        </nav>
+        <div class="text-right">
+            {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <div class="dropdown__toggle">
+                        <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" 
+                             class="dropdown__avatar">
+                        <span>{{ user.username }}</span>
+                    </div>
+                    <div class="dropdown__content">
+                        <a href="{% url 'switch_role' %}" class="dropdown__item">
+                            Переключиться на {% if user.role == 'Freelancer' %}Заказчика{% else %}Фрилансера{% endif %}
+                        </a>
+                        <div class="dropdown__divider"></div>
+                        <a href="{% url 'profile' %}" class="dropdown__item">Профиль</a>
+                        <form method="post" action="{% url 'logout' %}" class="dropdown__form">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown__logout">Выйти</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}" class="header__link">Войти</a>
+                <a href="{% url 'register' %}" class="header__link">Регистрация</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Dropdown functionality
+        document.querySelectorAll('.dropdown').forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown__toggle');
+            const content = dropdown.querySelector('.dropdown__content');
+            
+            toggle.addEventListener('click', () => {
+                content.classList.toggle('show');
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target)) {
+                    content.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
