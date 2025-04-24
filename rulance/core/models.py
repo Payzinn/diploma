@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission  
 from django.db import models
+from django.conf import settings
+import os
+import uuid
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -107,3 +110,82 @@ class Order(models.Model):
 
     def __str__(self):
         return self.title
+    
+
+class Portfolio(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='portfolio',
+        verbose_name='Фрилансер'
+    )
+    sphere = models.ForeignKey(
+        'Sphere',
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Категория'
+    )
+    sphere_type = models.ForeignKey(
+        'SphereType',
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Подкатегория'
+    )
+    less_than_year = models.BooleanField(
+        'Опыт меньше года',
+        default=False
+    )
+    years_experience = models.PositiveIntegerField(
+        'Опыт работы (лет)',
+        null=True,
+        blank=True
+    )
+    hourly_rate = models.DecimalField(
+        'Ставка в час (₽)',
+        max_digits=10,
+        decimal_places=2
+    )
+    monthly_rate = models.DecimalField(
+        'Ставка в месяц (₽)',
+        max_digits=10,
+        decimal_places=2
+    )
+    description = models.TextField('Описание опыта')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Портфолио'
+        verbose_name_plural = 'Портфолио'
+
+    def __str__(self):
+        return f'Портфолио {self.user.username}'
+    
+def order_file_path(instance, filename):
+    """
+    Генерирует уникальное имя файла в подпапке order_files/
+    """
+    ext = filename.split('.')[-1].lower()
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    return os.path.join('order_files', filename)
+
+class OrderFile(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='files',
+        verbose_name='Заказ'
+    )
+    file = models.FileField(
+        upload_to=order_file_path,
+        verbose_name='Файл'
+    )
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Файл заказа'
+        verbose_name_plural = 'Файлы заказа'
+
+    def __str__(self):
+        return f"{self.order.title} — {os.path.basename(self.file.name)}"

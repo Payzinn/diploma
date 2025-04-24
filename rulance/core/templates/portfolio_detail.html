@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Моё портфолио{% endblock %}
+
+{% block content %}
+<section class="container portfolio-detail">
+  <h2 class="page_header portfolio-detail__title">
+    Портфолио {{ request.user.full_name }}
+  </h2>
+
+  <!-- Группа: Категория -->
+  <div class="portfolio-detail__group">
+    <p class="portfolio-detail__label"><strong>Категория:</strong></p>
+    <p class="portfolio-detail__value">
+      {{ portfolio.sphere.name }} → {{ portfolio.sphere_type.name }}
+    </p>
+  </div>
+
+  <!-- Группа: Опыт работы -->
+  <div class="portfolio-detail__group">
+    <p class="portfolio-detail__label"><strong>Опыт работы:</strong></p>
+    <p class="portfolio-detail__value">
+      {% if portfolio.less_than_year %}
+        Меньше года
+      {% else %}
+        {{ portfolio.years_experience }} года(лет)
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Группа: Ставки -->
+  <div class="portfolio-detail__group">
+    <p class="portfolio-detail__label"><strong>Ставка в час:</strong></p>
+    <p class="portfolio-detail__value">{{ portfolio.hourly_rate }} ₽</p>
+    <p class="portfolio-detail__label mt-2"><strong>Ставка в месяц:</strong></p>
+    <p class="portfolio-detail__value">{{ portfolio.monthly_rate }} ₽</p>
+  </div>
+
+  <!-- Группа: Описание -->
+  <div class="portfolio-detail__group">
+    <p class="portfolio-detail__label"><strong>Описание опыта:</strong></p>
+    <p class="portfolio-detail__value">{{ portfolio.description }}</p>
+  </div>
+
+  <div class="portfolio-detail__actions">
+    <a href="{% url 'portfolio_update' %}"
+       class="portfolio-detail__btn">
+      Редактировать портфолио
+    </a>
+  </div>
+</section>
+{% endblock %}

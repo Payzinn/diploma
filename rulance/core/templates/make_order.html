@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Разместить заказ{% endblock %}
+
+{% block content %}
+<section class="container make-order">
+  <h2 class="page_header">Разместить заказ</h2>
+
+  <form method="post" action="{% url 'make_order' %}" class="form" enctype="multipart/form-data">
+  {% csrf_token %}
+
+    <div class="form-item">
+      {{ form.title.label_tag }}
+      {{ form.title }}
+      {{ form.title.errors }}
+    </div>
+
+    <div class="form-item">
+      {{ form.description.label_tag }}
+      {{ form.description }}
+      {{ form.description.errors }}
+    </div>
+
+    <div class="form-item">
+        <label class="label">Сфера деятельности</label>
+        <button type="button" id="sphere_modal" class="button">
+          Выбрать сферу
+        </button>
+        <input
+          type="hidden"
+          name="sphere_type"
+          id="chosen_sphere"
+          value="{{ form.sphere_type.value|default_if_none:'' }}"
+        >
+        <div id="sphere_chosen_name" class="chosen-name">
+          {% if form.sphere_type.value %}
+            Выбрано: {{ form.sphere_type.value }}
+          {% endif %}
+        </div>
+        {% if form.errors.sphere_type %}
+          <p class="error">{{ form.errors.sphere_type.0 }}</p>
+        {% endif %}
+      </div>
+
+    <div class="form-item">
+      {{ form.price.label_tag }}
+      {{ form.price }}
+      {{ form.price.errors }}
+    </div>
+
+    <div class="form-item form-item--checkbox">
+        <input
+          type="checkbox"
+          id="id_is_negotiable"
+          name="is_negotiable"
+        >
+        <label for="id_is_negotiable" class="checkbox-btn">
+          Жду предложений
+        </label>
+        {{ form.is_negotiable.errors }}
+      </div>
+
+    <div class="form-item form-item--files">
+        <label class="label">Файлы</label>
+      
+        <div class="drop-zone" id="dropZone">
+          <p>Перетащите сюда файлы или кликните для выбора</p>
+          <input
+            type="file"
+            name="files"
+            id="fileInput"
+            multiple
+            accept=".doc,.docx,.jpeg,.jpg"
+          >
+        </div>
+      
+        <div class="file-preview" id="filePreview"></div>
+        <div class="error-message" id="errorMessage"></div>
+      </div>
+
+    <div class="form-item">
+      <button type="submit" class="button-submit">Отправить</button>
+    </div>
+  </form>
+</section>
+
+
+{% endblock %}

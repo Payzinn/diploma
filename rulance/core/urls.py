@@ -1,7 +1,8 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
 from . import views
-
+from django.conf import settings
+from django.conf.urls.static import static
 urlpatterns = [
     path('', views.index, name='index'),
     path('orders/', views.orders, name='orders'),
@@ -10,5 +11,8 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('switch-role/', views.switch_role, name='switch_role'),
     path('profile/', views.profile, name='profile'),
-    
-]
+    path('portfolio/create/', views.portfolio_create, name='portfolio_create'),
+    path('portfolio/', views.portfolio_detail, name='portfolio_detail'),
+    path('portfolio/edit/', views.portfolio_update, name='portfolio_update'),
+    path('make_order/', views.make_order, name='make_order'),
+]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

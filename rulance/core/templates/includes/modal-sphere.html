@@ -1,0 +1,21 @@
+{% if spheres %}
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Выберите сферу деятельности</h2>
+    <div class="sphere-list">
+      <button id="backBtn" class="button-back" style="display:none;">Назад</button>
+      {% for sphere in spheres %}
+      <div class="sphere-block">
+        <h3>{{ sphere.name }}</h3>
+        <ul style="display:none;">
+          {% for st in sphere.spheretype_set.all %}
+          <li data-stid="{{ st.id }}">{{ st.name }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

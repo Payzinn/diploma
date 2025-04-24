@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+  {% if is_update %}Редактировать портфолио{% else %}Создать портфолио{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="container portfolio-form">
+  <h2 class="page_header portfolio-form__title">
+    {% if is_update %}Редактировать портфолио{% else %}Создать портфолио{% endif %}
+  </h2>
+
+  <form method="post" class="portfolio-form__form">
+    {% csrf_token %}
+
+    <!-- 1. Сфера деятельности -->
+    <div class="portfolio-form__group portfolio-form__group--sphere">
+      <label for="sphere_modal" class="portfolio-form__label">Сфера деятельности</label>
+      <div class="portfolio-form__field">
+        <button
+          type="button"
+          id="sphere_modal"
+          class="portfolio-form__btn"
+        >Выбрать сферу</button>
+        <input type="hidden" name="sphere_type" id="chosen_sphere">
+        <p class="portfolio-form__selected" id="sphere_chosen_name"></p>
+      </div>
+    </div>
+
+    <!-- 2. Опыт работы -->
+    <div class="portfolio-form__group portfolio-form__group--experience">
+      <p class="portfolio-form__label">Опыт работы</p>
+      <div class="portfolio-form__toggles">
+        <label class="portfolio-form__toggle-btn" data-value="True">
+          <input type="radio" name="less_than_year" value="True">
+          Меньше года
+        </label>
+        <label class="portfolio-form__toggle-btn portfolio-form__toggle-btn--active" data-value="False">
+          <input type="radio" name="less_than_year" value="False" checked>
+          Ввести количество лет
+        </label>
+      </div>
+      <div id="years_block" class="portfolio-form__field">
+        <label for="{{ form.years_experience.id_for_label }}"></label>
+        {{ form.years_experience }}
+      </div>
+    </div>
+
+    <!-- 3. Ставки -->
+    <div class="portfolio-form__group portfolio-form__group--rates">
+      <div class="portfolio-form__field">
+        <label for="{{ form.hourly_rate.id_for_label }}">Ставка в час (₽)</label>
+        {{ form.hourly_rate }}
+      </div>
+      <div class="portfolio-form__field">
+        <label for="{{ form.monthly_rate.id_for_label }}">Ставка в месяц (₽)</label>
+        {{ form.monthly_rate }}
+      </div>
+    </div>
+
+    <!-- 4. Описание опыта -->
+    <div class="portfolio-form__group portfolio-form__group--description">
+      <label for="{{ form.description.id_for_label }}" class="portfolio-form__label">
+        Опишите ваш опыт работы
+      </label>
+      {{ form.description }}
+    </div>
+
+    <div class="portfolio-form__actions">
+      <button type="submit"
+              class="portfolio-form__submit">
+        {% if is_update %}Сохранить изменения{% else %}Сохранить{% endif %}
+      </button>
+    </div>
+  </form>
+</section>
+
+<!-- {% if spheres %}
+{% endif %} -->
+
+{% endblock %}
+
+

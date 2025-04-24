@@ -1,68 +1,56 @@
-{# templates/profile.html #}
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Rulance · Профиль{% endblock %}
+
 {% block content %}
-<div class="profile_block">
-    <div class="page_header">
-        <h2>Профиль</h2>
+<section class="container profile">
+  <h2 class="page_header profile__title">Профиль</h2>
+
+  <div class="profile__card">
+    <!-- Аватар -->
+    <form id="avatar-form"
+          method="post"
+          action="{% url 'profile' %}"
+          enctype="multipart/form-data"
+          class="profile__avatar-wrapper">
+      {% csrf_token %}
+      <label for="id_avatar" class="profile__avatar-label">
+        <img
+          src="{{ user.avatar.url }}"
+          alt="Аватар {{ user.username }}"
+          class="profile__avatar-img"
+          id="avatar-preview"
+        >
+        <span class="profile__avatar-hint">Изменить аватар</span>
+      </label>
+      <input type="file"
+             id="id_avatar"
+             name="avatar"
+             accept="image/*"
+             hidden>
+    </form>
+
+    <!-- Информация -->
+    <div class="profile__info">
+      <p class="profile__info-name">{{ user.full_name }}</p>
+      <ul class="profile__info-list">
+        <li><strong>Логин:</strong> {{ user.username }}</li>
+        <li><strong>Email:</strong> {{ user.email }}</li>
+        <li><strong>Роль:</strong> {{ user.get_role_display }}</li>
+        {% if user.role == 'Client' %}
+            <a href="{% url 'make_order' %}" class="profile__link">Разместить заказ</a>
+        {% endif %}
+        {% if user.role == 'Freelancer' and has_portfolio %}
+          <li><strong>Портфолио:</strong>
+            <a href="{% url 'portfolio_detail' %}" class="profile__link">Моё портфолио</a>
+          </li>
+        {% endif %}
+      </ul>
+
+      {% if user.role == 'Freelancer' and not has_portfolio %}
+        <a href="{% url 'portfolio_create' %}" class="profile__btn">Создать портфолио</a>
+      {% endif %}
     </div>
-
-  <div class="profile_block-avatar">
-
-    <form id="avatar-form" class="avatar-form" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="file" id="id_avatar" name="avatar" accept="image/*" style="display: none;">
-        <label for="id_avatar">
-          <img
-            src="{{ user.avatar.url }}"
-            alt="Аватар {{ user.username }}"
-            class="w-30 h-30 rounded-full object-cover border-4 border-blue-500 cursor-pointer"
-            id="avatar-preview"
-          >
-        </label>
-      </form>
   </div>
-
-  <div class="account_info">
-    <p><strong>ФИО:</strong> {{ user.full_name }}</p>
-    <p><strong>Логин:</strong> {{ user.username }}</p>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
-  </div>
-</div>
-
-<script>
-    document.getElementById('id_avatar').addEventListener('change', function () {
-      const file = this.files[0];
-      if (!file) return;
-    
-      const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById('avatar-preview').src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    
-      const form = document.getElementById('avatar-form');
-      const formData = new FormData(form);
-    
-      fetch("{% url 'profile' %}", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-      })
-      .then(response => {
-        if (!response.ok) throw new Error('Ошибка при загрузке');
-        return response.text();
-      })
-      .then(data => {
-        console.log("Аватар обновлён!");
-      })
-      .catch(err => {
-        console.error("Ошибка:", err);
-      });
-    });
-    </script>
+</section>
 {% endblock %}
