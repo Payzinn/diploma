@@ -22,10 +22,10 @@
           <!-- Цена -->
           <div class="form-item form-item--prices">
             <label>Цена (₽):</label>
-            <input type="number" name="price_min" placeholder="Мин."
+            <input type="number" name="price_min" min="0" placeholder="Мин."
                    value="{{ filter.price_min }}" class="form-input form-input--small">
             <input type="number" name="price_max" placeholder="Макс."
-                   value="{{ filter.price_max }}" class="form-input form-input--small">
+                   value="{{ filter.price_max }}" min="0" class="form-input form-input--small">
           </div>
       
           <!-- Сфера -->
@@ -73,7 +73,11 @@
     <ul class="orders-list">
       {% for order in orders %}
       <li class="order-item">
-        <h3 class="order-item__title">{{ order.title }}</h3>
+        <h3 class="order-item__title">
+            <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+              {{ order.title }}
+            </a>
+          </h3>
         <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
 
         <div class="order-item__meta">

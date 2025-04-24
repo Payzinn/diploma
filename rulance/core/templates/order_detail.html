@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Заказ «{{ order.title }}»{% endblock %}
+
+{% block content %}
+<section class="container order-detail">
+  <h2 class="page_header order-detail__title">Заказ: {{ order.title }}</h2>
+
+  <article class="order-detail__card">
+    <!-- Описание -->
+    <section class="order-detail__section">
+      <h3 class="order-detail__section-title">Описание</h3>
+      <p class="order-detail__description">{{ order.description }}</p>
+    </section>
+
+    <!-- Детали (вертикальный список) -->
+    <section class="order-detail__section">
+      <h3 class="order-detail__section-title">Детали</h3>
+      <dl class="order-detail__dl">
+        <div class="order-detail__row">
+          <dt class="order-detail__term">Категория:</dt>
+          <dd class="order-detail__desc">{{ order.sphere.name }} → {{ order.sphere_type.name }}</dd>
+        </div>
+        <div class="order-detail__row">
+          <dt class="order-detail__term">Цена:</dt>
+          <dd class="order-detail__desc">
+            {% if order.is_negotiable %}Договорная{% else %}{{ order.price }} ₽{% endif %}
+          </dd>
+        </div>
+        <div class="order-detail__row">
+          <dt class="order-detail__term">Статус:</dt>
+          <dd class="order-detail__desc">{{ order.status }}</dd>
+        </div>
+        <div class="order-detail__row">
+          <dt class="order-detail__term">Автор:</dt>
+          <dd class="order-detail__desc">{{ order.client.username }}</dd>
+        </div>
+        <div class="order-detail__row">
+          <dt class="order-detail__term">Создано:</dt>
+          <dd class="order-detail__desc">{{ order.created_at|date:"d.m.Y H:i" }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Вложения -->
+    {% if order.files.all %}
+    <section class="order-detail__section">
+      <h3 class="order-detail__section-title">Вложения</h3>
+      <ul class="order-detail__file-list">
+        {% for f in order.files.all %}
+        <li>
+          <a href="{{ f.file.url }}" target="_blank" class="order-detail__file-link">
+            {{ f.file.name|slice:"12:" }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <!-- Назад -->
+    <div class="order-detail__actions">
+      <a href="{% url 'orders' %}" class="order-detail__back">
+        ← Назад к списку заказов
+      </a>
+    </div>
+  </article>
+</section>
+{% endblock %}

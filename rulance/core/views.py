@@ -176,3 +176,15 @@ def make_order(request):
         'spheres': spheres,
     })
 
+
+@login_required
+def order_detail(request, pk):
+    order = get_object_or_404(
+        Order.objects
+             .select_related('sphere','sphere_type','client')
+             .prefetch_related('files'),  
+        pk=pk
+    )
+    return render(request, 'order_detail.html', {
+        'order': order,
+    })
