@@ -16,4 +16,5 @@ urlpatterns = [
     path('portfolio/edit/', views.portfolio_update, name='portfolio_update'),
     path('make_order/', views.make_order, name='make_order'),
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
+    path('orders/<int:pk>/respond/', views.order_respond, name='order_respond'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -189,3 +189,38 @@ class OrderFile(models.Model):
 
     def __str__(self):
         return f"{self.order.title} — {os.path.basename(self.file.name)}"
+    
+
+class Response(models.Model):
+    STATUS_CHOICES = [
+        ('Pending',  'Ожидает'),
+        ('Accepted', 'Принят'),
+        ('Rejected', 'Отклонён'),
+    ]
+
+    order = models.ForeignKey(
+        'Order',
+        on_delete=models.CASCADE,
+        related_name='responses',
+        verbose_name='Заказ'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='responses',
+        verbose_name='Фрилансер'
+    )
+    description     = models.TextField('Почему именно вы')
+    term            = models.PositiveIntegerField('Срок исполнения (дни)')
+    responser_price = models.DecimalField('Ваша цена (₽)', max_digits=10, decimal_places=2)
+    status          = models.CharField('Статус', max_length=10, choices=STATUS_CHOICES, default='Pending')
+    created_at      = models.DateTimeField(auto_now_add=True)
+    updated_at      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Отклик'
+        verbose_name_plural = 'Отклики'
+        unique_together = [('order','user')]  
+
+    def __str__(self):
+        return f'Отклик #{self.pk} by {self.user.username} на {self.order.title}'

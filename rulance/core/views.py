@@ -3,16 +3,11 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-
+from django.db.models import Count, Q
 from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order
-from .forms import (
-    UserRegisterForm,
-    UserProfileForm,
-    AvatarForm,
-    PortfolioForm,
-    OrderForm,
+from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm
     
-)
+
 
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
@@ -21,30 +16,45 @@ def index(request):
 def orders(request):
     spheres       = Sphere.objects.all()
     sphere_types  = SphereType.objects.all()
-    qs            = Order.objects.filter(status='Открыт')
-    
+
+    qs = Order.objects.filter(status='Открыт') \
+                      .annotate(responses_count=Count('responses'))
+
     search = request.GET.get('search', '').strip()
     if search:
         qs = qs.filter(title__icontains=search)
-    
+
     price_min = request.GET.get('price_min')
     if price_min:
         qs = qs.filter(price__gte=price_min)
     price_max = request.GET.get('price_max')
     if price_max:
         qs = qs.filter(price__lte=price_max)
-    
+
     sphere_id = request.GET.get('sphere')
     if sphere_id:
         qs = qs.filter(sphere_type__sphere_id=sphere_id)
-    
+
     sphere_types_ids = request.GET.getlist('sphere_types')
     if sphere_types_ids:
         qs = qs.filter(sphere_type_id__in=sphere_types_ids)
-    
-    qs = qs.select_related('sphere', 'sphere_type', 'client') \
-           .order_by('-created_at')
-    
+
+    sort = request.GET.get('sort', '')
+    if sort == 'no_responses':
+        qs = qs.filter(responses_count=0)
+    elif sort == 'resp_asc':
+        qs = qs.order_by('responses_count')
+    elif sort == 'resp_desc':
+        qs = qs.order_by('-responses_count')
+    elif sort == 'date_asc':
+        qs = qs.order_by('created_at')
+    elif sort == 'date_desc':
+        qs = qs.order_by('-created_at')
+    else:
+        qs = qs.order_by('-created_at')
+
+    qs = qs.select_related('sphere','sphere_type','client')
+
     return render(request, 'orders.html', {
         'orders': qs,
         'spheres': spheres,
@@ -55,6 +65,7 @@ def orders(request):
             'price_max': price_max or '',
             'sphere_id': sphere_id or '',
             'sphere_types_ids': list(map(int, sphere_types_ids)) if sphere_types_ids else [],
+            'sort': sort,
         }
     })
 
@@ -182,9 +193,36 @@ def order_detail(request, pk):
     order = get_object_or_404(
         Order.objects
              .select_related('sphere','sphere_type','client')
-             .prefetch_related('files'),  
+             .prefetch_related('files','responses__user'),
         pk=pk
     )
+
+    has_portfolio = hasattr(request.user, 'portfolio')
+    has_responded = order.responses.filter(user=request.user).exists()
+
     return render(request, 'order_detail.html', {
         'order': order,
+        'has_portfolio': has_portfolio,
+        'has_responded': has_responded,
+        'response_form': ResponseForm(),
     })
+
+@login_required
+def order_respond(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    if request.user.role != 'Freelancer':
+        return redirect('order_detail', pk=pk)
+    if not hasattr(request.user, 'portfolio'):
+        return redirect(reverse('order_detail', args=[pk]) + '?no_portfolio=1')
+    if order.responses.filter(user=request.user).exists():
+        return redirect(reverse('order_detail', args=[pk]) + '?already=1')
+
+    if request.method == 'POST':
+        form = ResponseForm(request.POST)
+        if form.is_valid():
+            resp = form.save(commit=False)
+            resp.order = order
+            resp.user = request.user
+            resp.save()
+            return redirect(reverse('order_detail', args=[pk]) + '?responded=1')
+    return redirect('order_detail', pk=pk)

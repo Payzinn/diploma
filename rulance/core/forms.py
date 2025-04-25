@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Portfolio, Order, SphereType
+from .models import User, Portfolio, Order, SphereType, Response
 from django.core.exceptions import ValidationError
 class UserRegisterForm(UserCreationForm):
     full_name = forms.CharField(label="ФИО", max_length=100)
@@ -162,3 +162,31 @@ class OrderForm(forms.ModelForm):
                     'Укажите цену или выберите «Договорная цена»')
 
         return cleaned
+    
+class ResponseForm(forms.ModelForm):
+    class Meta:
+        model = Response
+        fields = ['description', 'term', 'responser_price']
+        widgets = {
+            'description': forms.Textarea(attrs={
+                'class': 'form-textarea',
+                'placeholder': 'Расскажите, почему именно вы подойдёте для этого заказа',
+                'rows': 4,
+                'required': True,
+            }),
+            'term': forms.NumberInput(attrs={
+                'class': 'form-input form-input--small',
+                'placeholder': 'Срок в днях',
+                'min': 1,
+                'required': True,
+            }),
+            'responser_price': forms.NumberInput(attrs={
+                'class': 'form-input form-input--small',
+                'placeholder': 'Ваша цена в ₽',
+                'min': 0,
+                'required': True,
+            }),
+        }
+        labels = {
+            'responser_price': 'Ваша цена (₽)',
+        }

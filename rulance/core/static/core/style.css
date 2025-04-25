@@ -9,6 +9,10 @@
     margin: 50px;
 }
 
+.text-center{
+  text-align: center;
+}
+
 body {
     background-color: #1C2526;
     color: #FFFFFF;
@@ -1065,3 +1069,159 @@ body {
   background:#4B5563; box-shadow:0 3px 8px rgba(0,0,0,0.3);
 }
 
+/* (Отклик на заказ) */
+.worker_feedback {
+  margin-top: 40px;
+  background: #252D2E;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.worker_feedback .page_header {
+  margin-bottom: 16px;
+}
+.worker_feedback .form {
+  display: flex;
+  flex-direction: column;
+}
+
+.worker_feedback .form-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.worker_feedback .form-item label {
+  color: #E5E7EB;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.worker_feedback .form-item input[type="text"],
+.worker_feedback .form-item input[type="number"],
+.worker_feedback .form-item input[type="date"],
+.worker_feedback .form-item textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+  color: #F3F4F6;
+  background-color: #2C3334;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.worker_feedback .form-item input:focus,
+.worker_feedback .form-item textarea:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+}
+
+.worker_feedback .form-item textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.worker_feedback .button-submit {
+  align-self: flex-start;
+  background-color: #3B82F6;
+  color: #FFFFFF;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.worker_feedback .button-submit:hover {
+  background-color: #2563EB;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.worker_feedback .error {
+  color: #EF4444;
+  margin-bottom: 16px;
+}
+
+.worker_feedback .info {
+  color: #FBBF24;
+  margin-bottom: 16px;
+}
+
+.worker_feedback .success {
+  color: #4ADE80;
+  margin-bottom: 16px;
+}
+
+.worker_feedback p.error,
+.worker_feedback p.info,
+.worker_feedback p.success {
+  text-align: center;
+}
+.order-item__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+}
+
+.order-item__link {
+  color: #3B82F6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.order-item__link:hover {
+  color: #2563EB;
+}
+
+.order-item__responses {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #A1A1AA;
+  font-size: 0.9rem;
+}
+
+.order-item__responses .icon-eye {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transition: fill 0.2s;
+}
+.order-item__responses:hover .icon-eye {
+  fill: #F3F4F6;
+}
+
+.order-item__count {
+  font-weight: 500;
+}
+
+.order-item__responses .order-item__count {
+  margin-left: 2px;
+}
+
+.orders_control__toggle-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  color: #ccc;
+  transition: background-color 0.2s, color 0.2s;
+}
+.orders_control__toggle-btn.active {
+  background-color: #4A90E2;
+  color: #fff;
+  border-color: #4A90E2;
+}
+.orders_control__toggle-btn:hover {
+  border-color: #888;
+  color: #fff;
+}

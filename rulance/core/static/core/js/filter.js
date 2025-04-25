@@ -41,3 +41,16 @@ document.addEventListener('DOMContentLoaded', () => {
         update();
       });
     })
+
+
+const sortButtons = document.querySelectorAll('.orders_control__toggle-btn[data-sort]');
+sortButtons.forEach(btn => {
+  const input = btn.querySelector('input[type="radio"]');
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    sortButtons.forEach(b => b.classList.remove('active'));
+    input.checked = true;
+    btn.classList.add('active');
+  });
+  if (input.checked) btn.classList.add('active');
+});

@@ -66,4 +66,48 @@
     </div>
   </article>
 </section>
+
+{% if request.GET.no_portfolio %}
+  <p class="error text-center">Сначала <a href="{% url 'portfolio_create' %}">создайте портфолио</a>, чтобы откликаться.</p>
+{% elif request.GET.already %}
+  <p class="info text-center">Вы уже оставили отклик на этот заказ.</p>
+{% elif request.GET.responded %}
+  <p class="success text-center">Ваш отклик отправлен!</p>
+{% else %}
+  {% if user.is_authenticated and user.role == 'Freelancer' %}
+    {% if not has_portfolio %}
+      <p class="error text-center">
+        Сначала <a href="{% url 'portfolio_create' %}">создайте портфолио</a>, чтобы откликаться.
+      </p>
+    {% elif has_responded %}
+      <p class="info text-center">Вы уже оставили отклик на этот заказ.</p>
+    {% else %}
+      <section class="worker_feedback">
+        <h2 class="page_header">Ваш отклик</h2>
+        <form action="{% url 'order_respond' order.pk %}" method="post" class="form">
+          {% csrf_token %}
+          <div class="form-item">
+            {{ response_form.description.label_tag }}
+            {{ response_form.description }}
+            {{ response_form.description.errors }}
+          </div>
+          <div class="form-item">
+            {{ response_form.term.label_tag }}
+            {{ response_form.term }}
+            {{ response_form.term.errors }}
+          </div>
+          <div class="form-item">
+            {{ response_form.responser_price.label_tag }}
+            {{ response_form.responser_price }}
+            {{ response_form.responser_price.errors }}
+          </div>
+          <div class="form-item">
+            <button type="submit" class="button-submit">Откликнуться</button>
+          </div>
+        </form>
+      </section>
+    {% endif %}
+  {% endif %}
+{% endif %}
+
 {% endblock %}

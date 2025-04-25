@@ -60,7 +60,41 @@
             </div>
             {% endfor %}
           </div>
-      
+          <div class="form-item">
+            <span class="label">Сортировать:</span>
+            <div class="orders_control__radios">
+              <label class="orders_control__toggle-btn" data-sort="">
+                <input type="radio" name="sort" value="" hidden
+                       {% if not filter.sort %}checked{% endif %}>
+                По умолчанию
+              </label>
+              <label class="orders_control__toggle-btn" data-sort="no_responses">
+                <input type="radio" name="sort" value="no_responses" hidden
+                       {% if filter.sort == 'no_responses' %}checked{% endif %}>
+                Без откликов
+              </label>
+              <label class="orders_control__toggle-btn" data-sort="resp_asc">
+                <input type="radio" name="sort" value="resp_asc" hidden
+                       {% if filter.sort == 'resp_asc' %}checked{% endif %}>
+                Отклики ↑
+              </label>
+              <label class="orders_control__toggle-btn" data-sort="resp_desc">
+                <input type="radio" name="sort" value="resp_desc" hidden
+                       {% if filter.sort == 'resp_desc' %}checked{% endif %}>
+                Отклики ↓
+              </label>
+              <label class="orders_control__toggle-btn" data-sort="date_asc">
+                <input type="radio" name="sort" value="date_asc" hidden
+                       {% if filter.sort == 'date_asc' %}checked{% endif %}>
+                Дата ↑
+              </label>
+              <label class="orders_control__toggle-btn" data-sort="date_desc">
+                <input type="radio" name="sort" value="date_desc" hidden
+                       {% if filter.sort == 'date_desc' %}checked{% endif %}>
+                Дата ↓
+              </label>
+            </div>
+          </div>      
           <!-- Кнопки -->
           <div class="form-item">
             <button type="submit" class="button-submit">Применить фильтры</button>
@@ -77,6 +111,26 @@
             <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
               {{ order.title }}
             </a>
+      <span class="order-item__responses">
+        <svg xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 576 512"
+            class="icon-eye"
+            width="16"
+            height="16"
+            fill="currentColor"
+            aria-hidden="true"
+        >
+          <path d="M572.52 241.4C518.74 135.76 407.22 64 288 64 
+                  168.78 64 57.26 135.76 3.48 241.4a48.1 48.1 0 0 
+                  0 0 29.2C57.26 376.24 168.78 448 288 448
+                  c119.22 0 230.74-71.76 284.52-177.4a48.1 
+                  48.1 0 0 0 0-29.2zM288 400c-61.86 0-112-50.14
+                  -112-112s50.14-112 112-112 112 50.14 112 112
+                  -50.14 112-112 112zm0-176a64 64 0 1 0 64 64 
+                  64 64 0 0 0-64-64z"/>
+        </svg>
+      <span class="order-item__count">{{ order.responses_count }}</span>
+    </span>
           </h3>
         <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
 
