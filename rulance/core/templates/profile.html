@@ -4,244 +4,255 @@
 {% block title %}Профиль – {{ profile_user.full_name|default:profile_user.username }}{% endblock %}
 
 {% block content %}
-<section class="container profile">
-  <h2 class="page_header profile__title">
-    {{ profile_user.full_name|default:profile_user.username }}
-  </h2>
-
-  <div class="profile__card">
-    {# Аватар (с возможностью менять свой) #}
-    {% if is_own %}
-      <form id="avatar-form"
-            method="post"
-            action="{% url 'profile' %}"
-            enctype="multipart/form-data"
-            class="profile__avatar-wrapper">
-        {% csrf_token %}
-        <label for="id_avatar" class="profile__avatar-label">
+  <!-- 1) Карточка профиля -->
+  <section class="container profile">
+    <h2 class="page_header profile__title">
+      {{ profile_user.full_name|default:profile_user.username }}
+    </h2>
+    <div class="profile__card">
+      {% if is_own %}
+        <form id="avatar-form"
+              method="post"
+              action="{% url 'profile' %}"
+              enctype="multipart/form-data"
+              class="profile__avatar-wrapper">
+          {% csrf_token %}
+          <label for="id_avatar" class="profile__avatar-label">
+            <img src="{{ profile_user.avatar.url }}"
+                 alt="Аватар {{ profile_user.username }}"
+                 class="profile__avatar-img"
+                 id="avatar-preview">
+            <span class="profile__avatar-hint">Изменить аватар</span>
+          </label>
+          <input type="file"
+                 id="id_avatar"
+                 name="avatar"
+                 accept="image/*"
+                 hidden>
+        </form>
+      {% else %}
+        <div class="profile__avatar-wrapper">
           <img src="{{ profile_user.avatar.url }}"
                alt="Аватар {{ profile_user.username }}"
-               class="profile__avatar-img"
-               id="avatar-preview">
-          <span class="profile__avatar-hint">Изменить аватар</span>
-        </label>
-        <input type="file"
-               id="id_avatar"
-               name="avatar"
-               accept="image/*"
-               hidden>
-      </form>
-    {% else %}
-      <div class="profile__avatar-wrapper">
-        <img src="{{ profile_user.avatar.url }}"
-             alt="Аватар {{ profile_user.username }}"
-             class="profile__avatar-img">
+               class="profile__avatar-img">
+        </div>
+      {% endif %}
+
+      <div class="profile__info">
+        <p class="profile__info-name">{{ profile_user.full_name|default:profile_user.username }}</p>
+        <ul class="profile__info-list">
+          <li><strong>Логин:</strong> {{ profile_user.username }}</li>
+          <li><strong>Email:</strong> {{ profile_user.email }}</li>
+          <li><strong>Роль:</strong> {{ profile_user.get_role_display }}</li>
+        </ul>
+        {% if is_own and profile_user.role == 'Client' %}
+          <a href="{% url 'make_order' %}" class="profile__link">Разместить заказ</a>
+        {% endif %}
+        {% if profile_user.role == 'Freelancer' and has_portfolio %}
+          <a href="{% url 'portfolio_detail' %}" class="profile__link">Портфолио</a>
+        {% endif %}
+        {% if is_own and profile_user.role == 'Freelancer' and not has_portfolio %}
+          <a href="{% url 'portfolio_create' %}" class="profile__btn">Создать портфолио</a>
+        {% endif %}
       </div>
-    {% endif %}
+    </div>
+  </section>
 
-    {# Информация о пользователе #}
-    <div class="profile__info">
-      <p class="profile__info-name">{{ profile_user.full_name|default:profile_user.username }}</p>
-      <ul class="profile__info-list">
-        <li><strong>Логин:</strong> {{ profile_user.username }}</li>
-        <li><strong>Email:</strong> {{ profile_user.email }}</li>
-        <li><strong>Роль:</strong> {{ profile_user.get_role_display }}</li>
+  <!-- 2) Чужой профиль клиента — сразу его заказы -->
+  {% if profile_user.role == 'Client' and not is_own %}
+  <section class="client-orders container">
+    <h2 class="page_header">Заказы {{ profile_user.full_name|default:profile_user.username }}</h2>
+    {% if client_orders %}
+      <ul class="orders-list">
+        {% for order in client_orders %}
+        <li class="order-item">
+          <h3 class="order-item__title">
+            <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+              {{ order.title }}
+            </a>
+            <span class="order-item__responses">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   viewBox="0 0 576 512"
+                   class="icon-eye"
+                   width="16" height="16">
+                <path d="M572.52 241.4C518.74 135.76 407.22 64 288 64 168.78
+                         64 57.26 135.76 3.48 241.4a48.1 48.1 0 0 0 0 29.2C57.26
+                         376.24 168.78 448 288 448c119.22 0 230.74-71.76 284.52-177.4
+                         a48.1 48.1 0 0 0 0-29.2zM288 400c-61.86 0-112-50.14-112-112
+                         s50.14-112 112-112 112 50.14 112 112-50.14 112-112 112zm0-176
+                         a64 64 0 1 0 64 64 64 64 0 0 0-64-64z"/>
+              </svg>
+              <span class="order-item__count">{{ order.responses_count }}</span>
+            </span>
+          </h3>
+          <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
+          <div class="order-item__meta">
+            <span>Категория:</span>
+            <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+          </div>
+          <div class="order-item__price">
+            <span>Цена:</span>
+            {% if order.is_negotiable %}
+              <strong>Договорная</strong>
+            {% else %}
+              <strong>{{ order.price }} ₽</strong>
+            {% endif %}
+          </div>
+          <div class="order-item__date">
+            Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+          </div>
+          {% if order.user_response %}
+          <div class="order-item__your-response">
+            <span>Статус вашего отклика:</span>
+            <strong>{{ order.user_response.get_status_display }}</strong>
+          </div>
+          {% endif %}
+        </li>
+        {% endfor %}
       </ul>
+    {% else %}
+      <p class="orders__empty">У этого пользователя пока нет заказов.</p>
+    {% endif %}
+  </section>
+  {% endif %}
 
-      {# Клиент может размещать заказ #}
-      {% if is_own and profile_user.role == 'Client' %}
-        <a href="{% url 'make_order' %}" class="profile__link">Разместить заказ</a>
-      {% endif %}
+  <!-- 3) Свой профиль — Вкладки «Мои заказы» и «Отклики…» -->
+  {% if is_own %}
+  <section class="profile__responses container">
+    <div class="profile__tabs">
+      <a href="?tab=orders"
+         class="profile__tab {% if current_tab == 'orders' %}active{% endif %}">
+        Мои заказы {% if client_orders %}<span class="profile__badge">{{ client_orders|length }}</span>{% endif %}
+      </a>
+      <a href="?tab=pending"
+         class="profile__tab {% if current_tab == 'pending' %}active{% endif %}">
+        {{ tab_label }} <span class="profile__badge">{{ pending.count }}</span>
+      </a>
+      <a href="?tab=in_work"
+         class="profile__tab {% if current_tab == 'in_work' %}active{% endif %}">
+        В работе <span class="profile__badge">{{ in_work.count }}</span>
+      </a>
+      <a href="?tab=completed"
+         class="profile__tab {% if current_tab == 'completed' %}active{% endif %}">
+        Завершённые <span class="profile__badge">{{ completed.count }}</span>
+      </a>
+    </div>
 
-      {# Любой может просмотреть портфолио фрилансера #}
-      {% if profile_user.role == 'Freelancer' and has_portfolio %}
-        <a href="{% url 'portfolio_detail' %}" class="profile__link">Портфолио</a>
-      {% endif %}
+    <div class="profile__tab-content">
+      {% if current_tab == 'orders' %}
+        {% if client_orders %}
+          <ul class="orders-list">
+            {% for order in client_orders %}
+            <li class="order-item">
+              <h3 class="order-item__title">
+                <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+                  {{ order.title }}
+                </a>
+                <span class="order-item__responses">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 576 512"
+                       class="icon-eye"
+                       width="16" height="16">
+                    <path d="M572.52 241.4C518.74 135.76 407.22 64 288 64 168.78
+                             64 57.26 135.76 3.48 241.4a48.1 48.1 0 0 0 0 29.2C57.26
+                             376.24 168.78 448 288 448c119.22 0 230.74-71.76 284.52-177.4
+                             a48.1 48.1 0 0 0 0-29.2zM288 400c-61.86 0-112-50.14-112-112
+                             s50.14-112 112-112 112 50.14 112 112-50.14 112-112 112zm0-176
+                             a64 64 0 1 0 64 64 64 64 0 0 0-64-64z"/>
+                  </svg>
+                  <span class="order-item__count">{{ order.responses_count }}</span>
+                </span>
+              </h3>
+              <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
+              <div class="order-item__meta">
+                <span>Категория:</span>
+                <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+              </div>
+              <div class="order-item__price">
+                <span>Цена:</span>
+                {% if order.is_negotiable %}
+                  <strong>Договорная</strong>
+                {% else %}
+                  <strong>{{ order.price }} ₽</strong>
+                {% endif %}
+              </div>
+              <div class="order-item__date">
+                Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+              </div>
+              {% if order.user_response %}
+              <div class="order-item__your-response">
+                <span>Статус вашего отклика:</span>
+                <strong>{{ order.user_response.get_status_display }}</strong>
+              </div>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="orders__empty">У вас пока нет заказов.</p>
+        {% endif %}
 
-      {# Свой фрилансер без портфолио – кнопка создания #}
-      {% if is_own and profile_user.role == 'Freelancer' and not has_portfolio %}
-        <a href="{% url 'portfolio_create' %}" class="profile__btn">Создать портфолио</a>
+      {% elif current_tab == 'pending' %}
+        {% if pending %}
+          <ul class="responses-list">
+            {% for resp in pending %}
+            <li class="response-item">
+              <p><strong>Фрилансер:</strong>
+                <a href="{% url 'profile_detail' resp.user.pk %}">
+                  {{ resp.user.full_name|default:resp.user.username }}
+                </a>
+              </p>
+              <p><strong>Заказ:</strong>
+                <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
+              </p>
+              <p><strong>Почему именно вы:</strong><br>{{ resp.description }}</p>
+              <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
+              <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+              <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-state">На ваши заказы ещё никто не откликнулся.</p>
+        {% endif %}
+
+      {% elif current_tab == 'in_work' %}
+        {% if in_work %}
+          <ul class="responses-list">
+            {% for resp in in_work %}
+            <li class="response-item">
+              <p><strong>Заказ:</strong>
+                <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
+              </p>
+              <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
+              <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+              <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-state">Нет заказов в работе.</p>
+        {% endif %}
+
+      {% else %}
+        {% if completed %}
+          <ul class="responses-list">
+            {% for resp in completed %}
+            <li class="response-item">
+              <p><strong>Заказ:</strong>
+                <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
+              </p>
+              <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
+              <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+              <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-state">Нет завершённых заказов.</p>
+        {% endif %}
       {% endif %}
     </div>
-  </div>
-</section>
-
-{% if profile_user.role == 'Client' %}
-<section class="client-orders container">
-  <h2 class="page_header">Заказы {{ profile_user.full_name|default:profile_user.username }}</h2>
-
-  {% if client_orders %}
-    <ul class="orders-list">
-      {% for order in client_orders %}
-      <li class="order-item">
-        <h3 class="order-item__title">
-          <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
-            {{ order.title }}
-          </a>
-          <span class="order-item__responses">
-            <!-- svg “глаз” -->
-            <svg …>…</svg>
-            <span class="order-item__count">{{ order.responses_count }}</span>
-          </span>
-        </h3>
-        <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
-        <div class="order-item__meta">
-          <span>Категория:</span>
-          <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
-        </div>
-        <div class="order-item__price">
-          <span>Цена:</span>
-          {% if order.is_negotiable %}
-            <strong>Договорная</strong>
-          {% else %}
-            <strong>{{ order.price }} ₽</strong>
-          {% endif %}
-        </div>
-        <div class="order-item__date">
-          Создано: {{ order.created_at|date:"d.m.Y H:i" }}
-        </div>
-
-        {% if order.user_response %}
-        <div class="order-item__your-response">
-          <span>Статус вашего отклика:</span>
-          <strong>{{ order.user_response.get_status_display }}</strong>
-        </div>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="orders__empty">У этого пользователя пока нет заказов.</p>
+  </section>
   {% endif %}
-</section>
-{% endif %}
-
-{# === Вкладки с откликами (только в своём профиле) === #}
-{% if is_own %}
-<section class="profile__responses container">
-  <div class="profile__tabs">
-    <a href="?tab=pending"
-       class="profile__tab {% if current_tab == 'pending' %}active{% endif %}">
-      {{ tab_label }} <span class="profile__badge">{{ pending.count }}</span>
-    </a>
-    <a href="?tab=in_work"
-       class="profile__tab {% if current_tab == 'in_work' %}active{% endif %}">
-      В работе <span class="profile__badge">{{ in_work.count }}</span>
-    </a>
-    <a href="?tab=completed"
-       class="profile__tab {% if current_tab == 'completed' %}active{% endif %}">
-      Завершённые <span class="profile__badge">{{ completed.count }}</span>
-    </a>
-  </div>
-
-  <div class="profile__tab-content">
-    {# ПЕРВАЯ ВЕТКА — pending #}
-    {% if current_tab == 'pending' %}
-      {% if pending %}
-        <ul class="responses-list">
-        {% for resp in pending %}
-          <li class="response-item">
-            {% if profile_user.role == 'Client' %}
-            <p><strong>Фрилансер:</strong>
-              <a href="{% url 'profile_detail' resp.user.pk %}">
-                {{ resp.user.full_name|default:resp.user.username }}
-              </a>
-            </p>
-          {% else %}
-            <p><strong>Заказчик:</strong>
-              <a href="{% url 'profile_detail' resp.order.client.pk %}">
-                {{ resp.order.client.full_name|default:resp.order.client.username }}
-              </a>
-            </p>
-            {% endif %}
-
-            <p><strong>Заказ:</strong>
-              <a href="{% url 'order_detail' resp.order.pk %}">
-                {{ resp.order.title }}
-              </a>
-            </p>
-
-            <p><strong>Почему именно вы:</strong><br>{{ resp.description }}</p>
-            <p><strong>Срок исполнения:</strong> {{ resp.term }} дней</p>
-            <p><strong>Ваша цена:</strong> {{ resp.responser_price }} ₽</p>
-            <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
-
-            {% if profile_user.role == 'Client' and resp.status == 'Pending' %}
-            <div class="response-actions">
-              <a href="{% url 'response_accept' resp.pk %}" class="button-small">
-                Принять
-              </a>
-              <a href="{% url 'response_reject'  resp.pk %}" class="button-small button-small--danger">
-                Отклонить
-              </a>
-            </div>
-          {% endif %}
-          </li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        <p class="empty-state">
-          {% if profile_user.role == 'Client' %}
-            На ваши заказы ещё никто не откликнулся.
-          {% else %}
-            Вы ещё не откликались.
-          {% endif %}
-        </p>
-      {% endif %}
-
-    {# ВТОРАЯ ВЕТКА — in_work #}
-    {% elif current_tab == 'in_work' %}
-      {% if in_work %}
-        <ul class="responses-list">
-        {% for resp in in_work %}
-          <li class="response-item">
-            <p><strong>Заказ:</strong>
-              <a href="{% url 'order_detail' resp.order.pk %}">
-                {{ resp.order.title }}
-              </a>
-            </p>
-            <p><strong>Срок исполнения:</strong> {{ resp.term }} дней</p>
-            <p><strong>Ваша цена:</strong> {{ resp.responser_price }} ₽</p>
-            <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
-            <p>
-              <a href="{% url 'order_respond' resp.order.pk %}?resp_id={{ resp.pk }}">
-                Просмотреть отклик
-              </a>
-            </p>
-          </li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        <p class="empty-state">Нет заказов в работе.</p>
-      {% endif %}
-
-    {# ТРЕТЬЯ ВЕТКА — completed #}
-    {% else %}
-      {% if completed %}
-        <ul class="responses-list">
-        {% for resp in completed %}
-          <li class="response-item">
-            <p><strong>Заказ:</strong>
-              <a href="{% url 'order_detail' resp.order.pk %}">
-                {{ resp.order.title }}
-              </a>
-            </p>
-            <p><strong>Срок исполнения:</strong> {{ resp.term }} дней</p>
-            <p><strong>Ваша цена:</strong> {{ resp.responser_price }} ₽</p>
-            <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
-            <p>
-              <a href="{% url 'order_respond' resp.order.pk %}?resp_id={{ resp.pk }}">
-                Просмотреть отклик
-              </a>
-            </p>
-          </li>
-        {% endfor %}
-        </ul>
-      {% else %}
-        <p class="empty-state">Нет завершённых заказов.</p>
-      {% endif %}
-    {% endif %}
-  </div>
-</section>
-{% endif %}
 {% endblock %}

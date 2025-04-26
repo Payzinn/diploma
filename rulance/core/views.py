@@ -89,61 +89,69 @@ def switch_role(request):
 
 @login_required
 def profile(request, pk=None):
+    # чей профиль показывать?
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
     else:
         profile_user = request.user
 
-    is_own = (profile_user == request.user)
+    is_own       = (profile_user == request.user)
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     context = {
-        'profile_user': profile_user,
-        'is_own': is_own,
+        'profile_user':  profile_user,
+        'is_own':        is_own,
         'has_portfolio': has_portfolio,
     }
 
+    # Собираем заказы клиента (для своего и чужого профиля)
     if profile_user.role == 'Client':
-        qs = ( Order.objects
-                .filter(client=profile_user)
-                .annotate(responses_count=Count('responses'))
-                .select_related('sphere', 'sphere_type') )
+        qs = (
+            Order.objects
+                 .filter(client=profile_user)
+                 .annotate(responses_count=Count('responses'))
+                 .select_related('sphere', 'sphere_type')
+        )
+        # если фрилансер смотрит чужой профиль — добавляем к каждому заказу его отклик
         if request.user.role == 'Freelancer':
             my_resps = Response.objects.filter(
                 order__client=profile_user,
                 user=request.user
             )
             resp_map = {r.order_id: r for r in my_resps}
-            orders = []
+            client_orders = []
             for o in qs:
-                o.user_response = resp_map.get(o.pk)   
-                orders.append(o)
+                o.user_response = resp_map.get(o.id)
+                client_orders.append(o)
         else:
-            orders = list(qs)
+            client_orders = list(qs)
+        context['client_orders'] = client_orders
 
-        context['client_orders'] = orders
-
+    # Вкладки «Мои заказы/Отклики…» только в своём профиле
     if is_own:
         if profile_user.role == 'Client':
             all_resps = Response.objects.filter(order__client=profile_user)
-            tab_label = 'Отклики исполнителей'
+            tab_label  = 'Отклики исполнителей'
+            default_tab = 'orders'
         else:
             all_resps = Response.objects.filter(user=profile_user)
-            tab_label = 'Мои отклики'
+            tab_label  = 'Мои отклики'
+            default_tab = 'pending'
 
-        pending_qs   = all_resps.filter(status='Pending')
-        in_work_qs   = all_resps.filter(status='Accepted')
-        completed_qs = all_resps.filter(status='Rejected')
-        current_tab  = request.GET.get('tab', 'pending')
-        if current_tab not in ('pending','in_work','completed'):
-            current_tab = 'pending'
+        pending   = all_resps.filter(status='Pending')
+        in_work   = all_resps.filter(status='Accepted')
+        completed = all_resps.filter(status='Rejected')
+
+        current_tab = request.GET.get('tab', default_tab)
+        if current_tab not in ('orders', 'pending', 'in_work', 'completed'):
+            current_tab = default_tab
 
         context.update({
-            'pending': pending_qs,
-            'in_work': in_work_qs,
-            'completed': completed_qs,
+            'pending':     pending,
+            'in_work':     in_work,
+            'completed':   completed,
             'current_tab': current_tab,
-            'tab_label': tab_label,
+            'tab_label':   tab_label,
         })
 
     return render(request, 'profile.html', context)
