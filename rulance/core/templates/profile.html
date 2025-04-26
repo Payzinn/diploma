@@ -120,10 +120,15 @@
   {% if is_own %}
   <section class="profile__responses container">
     <div class="profile__tabs">
+      {% if profile_user.role == 'Client' %}
       <a href="?tab=orders"
          class="profile__tab {% if current_tab == 'orders' %}active{% endif %}">
-        Мои заказы {% if client_orders %}<span class="profile__badge">{{ client_orders|length }}</span>{% endif %}
+        Мои заказы 
+        {% if client_orders %}
+          <span class="profile__badge">{{ client_orders|length }}</span>
+        {% endif %}
       </a>
+      {% endif %}
       <a href="?tab=pending"
          class="profile__tab {% if current_tab == 'pending' %}active{% endif %}">
         {{ tab_label }} <span class="profile__badge">{{ pending.count }}</span>
@@ -193,27 +198,43 @@
         {% endif %}
 
       {% elif current_tab == 'pending' %}
-        {% if pending %}
-          <ul class="responses-list">
-            {% for resp in pending %}
-            <li class="response-item">
-              <p><strong>Фрилансер:</strong>
-                <a href="{% url 'profile_detail' resp.user.pk %}">
-                  {{ resp.user.full_name|default:resp.user.username }}
-                </a>
-              </p>
-              <p><strong>Заказ:</strong>
-                <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
-              </p>
-              <p><strong>Почему именно вы:</strong><br>{{ resp.description }}</p>
-              <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
-              <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
-              <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
-            </li>
-            {% endfor %}
+      {% if pending %}
+      <ul class="responses-list">
+        {% for resp in pending %}
+        <li class="response-item">
+          {% if profile_user.role == 'Client' %}
+            <p><strong>Фрилансер:</strong>
+              <a href="{% url 'profile_detail' resp.user.pk %}">
+                {{ resp.user.full_name|default:resp.user.username }}
+              </a>
+            </p>
+          {% else %}
+            {# тут resp.user — это всегда вы, поэтому показываем заказчика #}
+            <p><strong>Заказчик:</strong>
+              <a href="{% url 'profile_detail' resp.order.client.pk %}">
+                {{ resp.order.client.full_name|default:resp.order.client.username }}
+              </a>
+            </p>
+          {% endif %}
+  
+          <p><strong>Заказ:</strong>
+            <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
+          </p>
+          <p><strong>Почему именно вы:</strong><br>{{ resp.description }}</p>
+          <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
+          <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+          <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+        </li>
+        {% endfor %}
           </ul>
-        {% else %}
-          <p class="empty-state">На ваши заказы ещё никто не откликнулся.</p>
+          {% else %}
+          <p class="empty-state">
+            {% if profile_user.role == 'Client' %}
+              На ваши заказы ещё никто не откликнулся.
+            {% else %}
+              Вы ещё не откликались.
+            {% endif %}
+          </p>
         {% endif %}
 
       {% elif current_tab == 'in_work' %}
