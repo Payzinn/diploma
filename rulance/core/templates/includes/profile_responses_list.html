@@ -1,0 +1,41 @@
+{# includes/profile_responses_list.html #}
+{% if responses %}
+<ul class="responses-list">
+  {% for resp in responses %}
+    <li class="response-item">
+      {% if role == 'Client' %}
+        <p><strong>Фрилансер:</strong>
+          <a href="{% url 'profile_detail' resp.user.pk %}">
+            {{ resp.user.username }}
+          </a>
+        </p>
+      {% else %}
+        <p><strong>Заказчик:</strong>
+          <a href="{% url 'profile' %}?pk={{ resp.order.client.pk }}">
+            {{ resp.order.client.username }}
+          </a>
+        </p>
+      {% endif %}
+      <p><strong>Заказ:</strong>
+        <a href="{% url 'order_detail' resp.order.pk %}">{{ resp.order.title }}</a>
+      </p>
+      <p><strong>Срок:</strong> {{ resp.term }} дней</p>
+      <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+      <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+      <p>
+        <a href="{% url 'order_respond' resp.order.pk %}?resp_id={{ resp.pk }}">
+          Просмотреть отклик
+        </a>
+      </p>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+  <p class="empty-state">
+    {% if role == 'Client' %}
+      На ваши заказы ещё никто не откликнулся.
+    {% else %}
+      Вы ещё не откликались.
+    {% endif %}
+  </p>
+{% endif %}

@@ -291,6 +291,43 @@ body {
     background-color: #2563EB;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }
+
+  /* profile tabs */
+  .profile__tabs {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .profile__tab {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: #aaa;
+    text-decoration: none;
+  }
+  .profile__tab.active {
+    border-color: #4A90E2;
+    color: #fff;
+  }
+  .profile__badge {
+    background: #4A90E2;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 0.5rem;
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .responses-list {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+  .response-item {
+    background: #2D3335;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
   
 /* PORTFOLIO */
 .portfolio-form {

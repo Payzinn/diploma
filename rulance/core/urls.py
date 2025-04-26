@@ -11,10 +11,13 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('switch-role/', views.switch_role, name='switch_role'),
     path('profile/', views.profile, name='profile'),
+    path('profile/<int:pk>/', views.profile, name='profile_detail'),
     path('portfolio/create/', views.portfolio_create, name='portfolio_create'),
     path('portfolio/', views.portfolio_detail, name='portfolio_detail'),
     path('portfolio/edit/', views.portfolio_update, name='portfolio_update'),
     path('make_order/', views.make_order, name='make_order'),
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
     path('orders/<int:pk>/respond/', views.order_respond, name='order_respond'),
+    path('response/<int:pk>/accept/', views.response_accept, name='response_accept'),
+    path('response/<int:pk>/reject/',  views.response_reject,  name='response_reject'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

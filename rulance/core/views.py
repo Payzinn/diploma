@@ -4,7 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
-from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order
+from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm
     
 
@@ -88,24 +88,82 @@ def switch_role(request):
     return redirect('index')
 
 @login_required
-def profile(request):
-    """
-    Аватар: меняем через AJAX (AvatarForm) — возвращает простой HttpResponse.
-    has_portfolio: флаг, чтобы отрисовать кнопку создания/редактирования.
-    """
-    if request.method == 'POST':
-        form = AvatarForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return HttpResponse("OK")
-        return HttpResponse(status=400)
+def profile(request, pk=None):
+    if pk:
+        profile_user = get_object_or_404(User, pk=pk)
+    else:
+        profile_user = request.user
 
-    form = AvatarForm(instance=request.user)
-    has_portfolio = hasattr(request.user, 'portfolio')
-    return render(request, 'profile.html', {
-        'form': form,
+    is_own = (profile_user == request.user)
+    has_portfolio = hasattr(profile_user, 'portfolio')
+
+    context = {
+        'profile_user': profile_user,
+        'is_own': is_own,
         'has_portfolio': has_portfolio,
-    })
+    }
+
+    if profile_user.role == 'Client':
+        qs = ( Order.objects
+                .filter(client=profile_user)
+                .annotate(responses_count=Count('responses'))
+                .select_related('sphere', 'sphere_type') )
+        if request.user.role == 'Freelancer':
+            my_resps = Response.objects.filter(
+                order__client=profile_user,
+                user=request.user
+            )
+            resp_map = {r.order_id: r for r in my_resps}
+            orders = []
+            for o in qs:
+                o.user_response = resp_map.get(o.pk)   
+                orders.append(o)
+        else:
+            orders = list(qs)
+
+        context['client_orders'] = orders
+
+    if is_own:
+        if profile_user.role == 'Client':
+            all_resps = Response.objects.filter(order__client=profile_user)
+            tab_label = 'Отклики исполнителей'
+        else:
+            all_resps = Response.objects.filter(user=profile_user)
+            tab_label = 'Мои отклики'
+
+        pending_qs   = all_resps.filter(status='Pending')
+        in_work_qs   = all_resps.filter(status='Accepted')
+        completed_qs = all_resps.filter(status='Rejected')
+        current_tab  = request.GET.get('tab', 'pending')
+        if current_tab not in ('pending','in_work','completed'):
+            current_tab = 'pending'
+
+        context.update({
+            'pending': pending_qs,
+            'in_work': in_work_qs,
+            'completed': completed_qs,
+            'current_tab': current_tab,
+            'tab_label': tab_label,
+        })
+
+    return render(request, 'profile.html', context)
+
+@login_required
+def response_accept(request, pk):
+    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
+    resp.status = 'Accepted'
+    resp.save()
+    order = resp.order
+    order.status = 'В работе'
+    order.save()
+    return redirect(reverse('profile'))
+
+@login_required
+def response_reject(request, pk):
+    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
+    resp.status = 'Rejected'
+    resp.save()
+    return redirect(reverse('profile'))
 
 @login_required
 def portfolio_create(request):
