@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.db.models import Count, Q
 from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm
-    
+from django.core.exceptions import PermissionDenied    
 
 
 def index(request):
@@ -89,22 +89,22 @@ def switch_role(request):
 
 @login_required
 def profile(request, pk=None):
-    # чей профиль показывать?
+    # 1) Определяем, чей профиль
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
     else:
         profile_user = request.user
 
-    is_own       = (profile_user == request.user)
+    is_own = (profile_user == request.user)
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     context = {
-        'profile_user':  profile_user,
-        'is_own':        is_own,
+        'profile_user': profile_user,
+        'is_own':       is_own,
         'has_portfolio': has_portfolio,
     }
 
-    # Собираем заказы клиента (для своего и чужого профиля)
+    # 2) Если у профиля — Клиент, готовим список его заказов
     if profile_user.role == 'Client':
         qs = (
             Order.objects
@@ -112,8 +112,9 @@ def profile(request, pk=None):
                  .annotate(responses_count=Count('responses'))
                  .select_related('sphere', 'sphere_type')
         )
-        # если фрилансер смотрит чужой профиль — добавляем к каждому заказу его отклик
-        if request.user.role == 'Freelancer':
+        # Если мы зашли НЕ в свой профиль и мы — Фрилансер, 
+        # нужно отметить, где у нас уже есть отклик:
+        if not is_own and request.user.role == 'Freelancer':
             my_resps = Response.objects.filter(
                 order__client=profile_user,
                 user=request.user
@@ -121,29 +122,31 @@ def profile(request, pk=None):
             resp_map = {r.order_id: r for r in my_resps}
             client_orders = []
             for o in qs:
-                o.user_response = resp_map.get(o.id)
+                o.user_response = resp_map.get(o.pk)
                 client_orders.append(o)
         else:
             client_orders = list(qs)
+
         context['client_orders'] = client_orders
 
-    # Вкладки «Мои заказы/Отклики…» только в своём профиле
+    # 3) Если это мой профиль, собираем отклики и табы
     if is_own:
         if profile_user.role == 'Client':
             all_resps = Response.objects.filter(order__client=profile_user)
-            tab_label  = 'Отклики исполнителей'
-            default_tab = 'orders'
+            tab_label = 'Отклики исполнителей'
         else:
             all_resps = Response.objects.filter(user=profile_user)
-            tab_label  = 'Мои отклики'
-            default_tab = 'pending'
+            tab_label = 'Мои отклики'
 
         pending   = all_resps.filter(status='Pending')
         in_work   = all_resps.filter(status='Accepted')
         completed = all_resps.filter(status='Rejected')
 
+        # по умолчанию для Клиента открывать «orders», для Фрилансера — «pending»
+        default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
-        if current_tab not in ('orders', 'pending', 'in_work', 'completed'):
+        valid_tabs = ['orders', 'pending', 'in_work', 'completed']
+        if current_tab not in valid_tabs:
             current_tab = default_tab
 
         context.update({
@@ -292,3 +295,20 @@ def order_respond(request, pk):
             resp.save()
             return redirect(reverse('order_detail', args=[pk]) + '?responded=1')
     return redirect('order_detail', pk=pk)
+
+@login_required
+def response_detail(request, pk):
+    resp = get_object_or_404(
+        Response.objects
+            .select_related('order__client', 'user'),
+        pk=pk
+    )
+    if not (
+        request.user == resp.order.client 
+        or request.user == resp.user
+    ):
+        raise PermissionDenied
+
+    return render(request, 'response_detail.html', {
+        'resp': resp
+    })

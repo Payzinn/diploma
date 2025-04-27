@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Отклик на «{{ resp.order.title }}»{% endblock %}
+
+{% block content %}
+<section class="container response-detail">
+  <h2 class="page_header">Отклик на заказ «{{ resp.order.title }}»</h2>
+
+  <article class="response-detail__card">
+
+    <section class="response-detail__section">
+      <h3 class="response-detail__section-title">Предложение фрилансера</h3>
+      <p class="response-detail__description">{{ resp.description }}</p>
+    </section>
+
+    <dl class="response-detail__dl">
+      <div class="response-detail__row">
+        <dt>Заказ:</dt>
+        <dd>
+          <a href="{% url 'order_detail' resp.order.pk %}">
+            {{ resp.order.title }}
+          </a>
+        </dd>
+      </div>
+      <div class="response-detail__row">
+        <dt>Фрилансер:</dt>
+        <dd>
+          <a href="{% url 'profile_detail' resp.user.pk %}">
+            {{ resp.user.full_name|default:resp.user.username }}
+          </a>
+        </dd>
+      </div>
+
+      <div class="response-detail__row">
+        <dt>Срок исполнения:</dt>
+        <dd>{{ resp.term }} дней</dd>
+      </div>
+
+      {# Вот блок с исходной ценой заказа #}
+      <div class="response-detail__row">
+        <dt>Исходная цена заказа:</dt>
+        <dd>
+          {% if resp.order.is_negotiable %}
+            Договорная
+          {% else %}
+            {{ resp.order.price }} ₽
+          {% endif %}
+        </dd>
+      </div>
+
+      <div class="response-detail__row">
+        <dt>Цена, предложенная фрилансером:</dt>
+        <dd>{{ resp.responser_price }} ₽</dd>
+      </div>
+
+      <div class="response-detail__row">
+        <dt>Статус отклика:</dt>
+        <dd>{{ resp.get_status_display }}</dd>
+      </div>
+
+      <div class="response-detail__row">
+        <dt>Дата отклика:</dt>
+        <dd>{{ resp.created_at|date:"d.m.Y H:i" }}</dd>
+      </div>
+    </dl>
+
+    <div class="response-detail__actions">
+        {% if request.user == resp.order.client and resp.status == 'Pending' %}
+        <div class="response-detail__row-buttons">
+          <a href="{% url 'response_accept' resp.pk %}"
+             class="button-small"
+             onclick="return confirm('Вы уверены, что хотите принять этот отклик?');">
+            Принять
+          </a>
+          <a href="{% url 'response_reject' resp.pk %}"
+             class="button-small button-small--danger"
+             onclick="return confirm('Вы уверены, что хотите отклонить этот отклик?');">
+            Отклонить
+          </a>
+        </div>
+        {% endif %}
+        <div class="button-reset-wrapper">
+            <a href="{% url 'profile' %}" class="button-reset">← Назад в профиль</a>
+        </div>
+      </div>
+  </article>
+</section>
+{% endblock %}

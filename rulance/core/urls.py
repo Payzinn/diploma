@@ -20,4 +20,5 @@ urlpatterns = [
     path('orders/<int:pk>/respond/', views.order_respond, name='order_respond'),
     path('response/<int:pk>/accept/', views.response_accept, name='response_accept'),
     path('response/<int:pk>/reject/',  views.response_reject,  name='response_reject'),
+    path('responses/<int:pk>/', views.response_detail, name='response_detail'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
