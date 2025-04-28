@@ -1,5 +1,7 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async       # <- вот этот импорт
+from .models import Chat, Message
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -13,21 +15,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message = data["message"]
-        sender = self.scope["user"].username
-        # Сохраняем в БД
-        from .models import Message, Chat
+        text = data["message"]
+        user = self.scope["user"]
+
         chat = await database_sync_to_async(Chat.objects.get)(pk=self.chat_id)
-        msg = Message(chat=chat, sender=self.scope["user"], text=message)
-        await database_sync_to_async(msg.save)()
+        msg = await database_sync_to_async(Message.objects.create)(
+            chat=chat,
+            sender=user,
+            text=text
+        )
 
         await self.channel_layer.group_send(
             self.group_name,
-            {"type": "chat.message", "message": message, "sender": sender}
+            {
+                "type": "chat.message",
+                "message": text,
+                "sender": user.username,
+                "avatar_url": user.avatar.url if user.avatar else "",
+                "sender_full_name": user.full_name or user.username,
+                "time": msg.timestamp.strftime("%H:%M"),
+            }
         )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            "message": event["message"],
-            "sender": event["sender"]
-        }))
+        await self.send(text_data=json.dumps(event))

@@ -89,11 +89,8 @@ def switch_role(request):
 
 @login_required
 def profile(request, pk=None):
-    if pk:
-        profile_user = get_object_or_404(User, pk=pk)
-    else:
-        profile_user = request.user
-    is_own = (profile_user == request.user)
+    profile_user = get_object_or_404(User, pk=pk) if pk else request.user
+    is_own       = (profile_user == request.user)
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     context = {
@@ -131,47 +128,58 @@ def profile(request, pk=None):
 
     if is_own:
         if profile_user.role == 'Client':
-            all_pending = Response.objects.filter(order__client=profile_user, status='Pending')
-            all_in_work = Response.objects.filter(order__client=profile_user, status='Accepted')
-            completed_items = Order.objects.filter(client=profile_user, status='Completed') \
-                                           .annotate(
-                                               responses_count=Count(
-                                                   'responses',
-                                                   filter=Q(responses__status='Pending')
-                                               )
-                                           ) \
-                                           .select_related('sphere','sphere_type')
             tab_label = 'Отклики исполнителей'
+            pending   = Response.objects.filter(order__client=profile_user, status='Pending')
+            in_work   = Response.objects.filter(order__client=profile_user, status='Accepted')
+            completed = Order.objects.filter(client=profile_user, status='Completed') \
+                                     .annotate(
+                                         responses_count=Count(
+                                             'responses',
+                                             filter=Q(responses__status='Pending')
+                                         )
+                                     ) \
+                                     .select_related('sphere','sphere_type')
         else:
-            all_pending = Response.objects.filter(user=profile_user, status='Pending')
-            all_in_work = Response.objects.filter(user=profile_user, status='Accepted')
-            completed_items = Response.objects.filter(user=profile_user, status='Rejected')
             tab_label = 'Мои отклики'
+            pending = Response.objects.filter(user=profile_user, status='Pending')
+            in_work = Response.objects.filter(user=profile_user, status='Accepted')
+            completed = Response.objects.filter(
+                user=profile_user,
+                status='Accepted',
+                order__status='Completed'
+            )
 
-        chat_map = {}
+        resp_list = list(in_work) + list(completed)
+        order_ids = [r.order_id for r in resp_list]
+
         if profile_user.role == 'Client':
             chats = Chat.objects.filter(
                 order__client=profile_user,
-                freelancer__in=[r.user for r in all_in_work]
+                freelancer__in=[r.user for r in in_work]
             )
-            chat_map = {
-                (c.order_id, c.freelancer_id): c
-                for c in chats
-            }
-            for resp in all_in_work:
-                resp.chat = chat_map.get((resp.order_id, resp.user_id))
+            chat_map = {(c.order_id, c.freelancer_id): c for c in chats}
+            for r in resp_list:
+                r.chat = chat_map.get((r.order_id, r.user_id))
+        else:
+            chats = Chat.objects.filter(
+                freelancer=profile_user,
+                order_id__in=order_ids
+            )
+            chat_map = {c.order_id: c for c in chats}
+            for r in resp_list:
+                r.chat = chat_map.get(r.order_id)
 
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
-        if current_tab not in ('orders', 'pending', 'in_work', 'completed'):
+        if current_tab not in ('orders','pending','in_work','completed'):
             current_tab = default_tab
 
         context.update({
-            'pending':     all_pending,
-            'in_work':     all_in_work,
-            'completed':   completed_items,
-            'current_tab': current_tab,
             'tab_label':   tab_label,
+            'pending':     pending,
+            'in_work':     in_work,
+            'completed':   completed,
+            'current_tab': current_tab,
         })
 
     return render(request, 'profile.html', context)
