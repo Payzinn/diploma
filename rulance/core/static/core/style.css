@@ -1426,3 +1426,125 @@ body {
   text-align: center;
 }
 
+
+/* chat_detail.html */
+.chat {
+  margin-bottom: 50px;
+}
+.chat__window {
+  background: #252D2E;
+  border-radius: 8px;
+  padding: 16px;
+  max-height: 600px;        
+  overflow-y: auto;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+}
+
+/* Общее оформление одного сообщения */
+.chat__message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+/* Сообщения текущего пользователя — выравниваем вправо */
+.chat__message--self {
+  justify-content: flex-end;
+}
+
+/* Аватарка */
+.chat__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;
+}
+
+/* Если своё сообщение, аватар слева не нужен — сдвигаем тело вправо */
+.chat__message--self .chat__avatar {
+  display: none;
+}
+
+/* Тело сообщения: имя, текст, время */
+.chat__body {
+  background: #1C2526;
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 70%;
+  position: relative;
+}
+
+/* Имя отправителя */
+.chat__body strong {
+  display: block;
+  color: #3B82F6;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+/* Текст сообщения */
+.chat__body p {
+  margin: 0 0 4px;
+  color: #F3F4F6;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Время отправки (мелким шрифтом справа под текстом) */
+.chat__time {
+  display: block;
+  font-size: 0.75rem;
+  color: #6B7280;
+  text-align: right;
+}
+
+/* Свой блок: выравниваем текст и фон чуть другим цветом */
+.chat__message--self .chat__body {
+  background: #3B82F6;
+}
+.chat__message--self .chat__body p {
+  color: #FFFFFF;
+}
+.chat__message--self .chat__body strong {
+  color: #FFFFFF;
+}
+.chat__message--self .chat__time {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Форма ввода */
+.chat__form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.chat__form input[type="text"] {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.95rem;
+  color: #F3F4F6;
+  background: #2C3334;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chat__form input[type="text"]:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+}
+.chat__form .button {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.chat__form .button:hover {
+  background-color: #2563EB;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
