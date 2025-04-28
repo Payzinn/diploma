@@ -5,22 +5,76 @@
 {% block content %}
 <section class="container chat">
   <h2 class="page_header">Чат: {{ chat.order.title }}</h2>
-  <div class="chat__window">
+
+  <div id="chat-window" class="chat__window">
     {% for msg in messages %}
       <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}">
         <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
         <div class="chat__body">
-          <strong>{{ msg.sender.get_full_name|default:msg.sender.username }}</strong>
+          <strong>{{ msg.sender.full_name|default:msg.sender.username }}</strong>
           <p>{{ msg.text }}</p>
           <small class="chat__time">{{ msg.timestamp|date:"H:i" }}</small>
         </div>
       </div>
     {% endfor %}
   </div>
-  <form method="post" class="chat__form">
-    {% csrf_token %}
-    {{ form.text }}
+
+  <form id="chat-form" class="chat__form">
+    <input id="chat-input" type="text" placeholder="Введите сообщение…" autocomplete="off" required>
     <button type="submit" class="button">Отправить</button>
   </form>
 </section>
+
+<script>
+  (function() {
+    const chatId = "{{ chat.pk }}";
+    const chatWindow = document.getElementById('chat-window');
+    const inputEl    = document.getElementById('chat-input');
+    const formEl     = document.getElementById('chat-form');
+
+    // Выбираем протокол WS или WSS
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socketUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
+    const chatSocket = new WebSocket(socketUrl);
+
+    // При получении нового сообщения от сервера
+    chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      const isSelf = data.sender === "{{ user.username }}";
+
+      const msgEl = document.createElement('div');
+      msgEl.classList.add('chat__message');
+      if (isSelf) msgEl.classList.add('chat__message--self');
+
+      msgEl.innerHTML = `
+        <img src="${data.avatar_url}" class="chat__avatar" alt="${data.sender}">
+        <div class="chat__body">
+          <strong>${data.sender_full_name}</strong>
+          <p>${data.message}</p>
+          <small class="chat__time">${data.time}</small>
+        </div>
+      `;
+      chatWindow.appendChild(msgEl);
+      // Прокручиваем вниз
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+      console.error('Chat socket closed unexpectedly');
+    };
+
+    formEl.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const message = inputEl.value.trim();
+      if (!message) return;
+      chatSocket.send(JSON.stringify({ message: message }));
+      inputEl.value = '';
+    });
+
+    // Прокручиваем чат вниз при загрузке
+    window.addEventListener('load', () => {
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+  })();
+</script>
 {% endblock %}
