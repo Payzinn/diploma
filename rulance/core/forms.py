@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Portfolio, Order, SphereType, Response
+from .models import User, Portfolio, Order, SphereType, Response, Message
 from django.core.exceptions import ValidationError
+
 class UserRegisterForm(UserCreationForm):
     full_name = forms.CharField(label="ФИО", max_length=100)
     email = forms.EmailField(label="Email")
@@ -190,3 +191,16 @@ class ResponseForm(forms.ModelForm):
         labels = {
             'responser_price': 'Ваша цена (₽)',
         }
+
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'class': 'form-textarea',
+                'rows': 3,
+                'placeholder': 'Введите сообщение...'
+            }),
+        }
+        labels = {'text': ''}

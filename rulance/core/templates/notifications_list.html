@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Уведомления{% endblock %}
+{% block content %}
+<section class="container">
+  <h2 class="page_header">Уведомления</h2>
+  {% if notifications %}
+    <ul class="notifications-list">
+      {% for note in notifications %}
+      <li class="notification-item {% if not note.is_read %}notification-item--new{% endif %}">
+        <a href="{{ note.get_absolute_url }}">
+          {{ note.verb }}
+          <small class="notification-time">{{ note.created_at|date:"d.m.Y H:i" }}</small>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>У вас пока нет уведомлений.</p>
+  {% endif %}
+</section>
+{% endblock %}

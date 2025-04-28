@@ -65,24 +65,25 @@
     </dl>
 
     <div class="response-detail__actions">
-        {% if request.user == resp.order.client and resp.status == 'Pending' %}
+      {% if request.user == resp.order.client and resp.status == 'Pending' %}
         <div class="response-detail__row-buttons">
           <a href="{% url 'response_accept' resp.pk %}"
-             class="button-small"
-             onclick="return confirm('Вы уверены, что хотите принять этот отклик?');">
-            Принять
-          </a>
-          <a href="{% url 'response_reject' resp.pk %}"
-             class="button-small button-small--danger"
-             onclick="return confirm('Вы уверены, что хотите отклонить этот отклик?');">
-            Отклонить
-          </a>
+          class="button-small js-confirm-action"
+          data-confirm-message="Вы уверены, что хотите принять этот отклик?">
+         Принять
+       </a>
+       <a href="{% url 'response_reject' resp.pk %}"
+          class="button-small button-small--danger js-confirm-action"
+          data-confirm-message="Вы уверены, что хотите отклонить этот отклик?">
+         Отклонить
+       </a>
         </div>
-        {% endif %}
-        <div class="button-reset-wrapper">
-            <a href="{% url 'profile' %}" class="button-reset">← Назад в профиль</a>
-        </div>
+      {% endif %}
+      <div class="button-reset-wrapper">
+        <a href="{% url 'profile' %}" class="button-reset">← Назад в профиль</a>
       </div>
+    </div>
   </article>
 </section>
+
 {% endblock %}

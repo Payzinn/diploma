@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Чат по заказу «{{ chat.order.title }}»{% endblock %}
+
+{% block content %}
+<section class="container chat">
+  <h2 class="page_header">Чат: {{ chat.order.title }}</h2>
+  <div class="chat__window">
+    {% for msg in messages %}
+      <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}">
+        <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
+        <div class="chat__body">
+          <strong>{{ msg.sender.get_full_name|default:msg.sender.username }}</strong>
+          <p>{{ msg.text }}</p>
+          <small class="chat__time">{{ msg.timestamp|date:"H:i" }}</small>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <form method="post" class="chat__form">
+    {% csrf_token %}
+    {{ form.text }}
+    <button type="submit" class="button">Отправить</button>
+  </form>
+</section>
+{% endblock %}

@@ -224,6 +224,11 @@
                       {{ resp.order.title }}
                     </a>
                   </p>
+                  <p><strong>Чат</strong>
+                  {% if resp.chat %}
+                    <a href="{% url 'chat_detail' resp.chat.pk %}" class="button-small">Перейти в чат</a>
+                  {% endif %}
+                  </p>
                   <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
                   <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
                   <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>

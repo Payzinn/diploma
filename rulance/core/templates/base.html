@@ -20,7 +20,16 @@
         <div class="text-right">
             {% if user.is_authenticated %}
                 <div class="dropdown">
+                    
                     <div class="dropdown__toggle">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'notifications_list' %}" class="nav-notif">
+                          🔔
+                          {% if unread_count %}
+                            <span class="nav-notif__badge">{{ unread_count }}</span>
+                          {% endif %}
+                        </a>
+                      {% endif %}
                         <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" 
                              class="dropdown__avatar">
                         <span>{{ user.username }}</span>
@@ -47,6 +56,7 @@
         {% block content %}{% endblock %}
     </div>
     <div id="notification" class="notification"></div>
+
     <script>
         document.querySelectorAll('.dropdown').forEach(dropdown => {
             const toggle = dropdown.querySelector('.dropdown__toggle');
@@ -64,8 +74,11 @@
         });
     </script>
 
+{% include 'includes/confirm-modal.html' %}
 {% include 'includes/modal-sphere.html' %}
 
+
+<script src="{% static 'core/js/confirm.js' %}" defer></script>
 <script src="{% static 'core/js/filter.js' %}" defer></script>
 <script src="{% static 'core/js/make_order.js' %}" defer></script>
 <script src="{% static 'core/js/notification.js' %}" defer></script>

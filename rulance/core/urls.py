@@ -21,4 +21,6 @@ urlpatterns = [
     path('response/<int:pk>/accept/', views.response_accept, name='response_accept'),
     path('response/<int:pk>/reject/',  views.response_reject,  name='response_reject'),
     path('responses/<int:pk>/', views.response_detail, name='response_detail'),
+    path('notifications/', views.notifications_list, name='notifications_list'),
+    path('chat/<int:chat_id>/', views.chat_detail, name='chat_detail'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

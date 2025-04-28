@@ -18,3 +18,4 @@ document.addEventListener('DOMContentLoaded', function() {
       showNotification('Ошибка: ' + message, 'error');
     }
   });
+

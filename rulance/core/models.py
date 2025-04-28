@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission  
 from django.db import models
 from django.conf import settings
+from django.urls import reverse
 import os
 import uuid
 
@@ -67,10 +68,10 @@ class SphereType(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('Открыт', 'Открыт'),
-        ('В работе', 'В работе'),
-        ('Завершён', 'Завершён'),
-        ('Отменён', 'Отменён'),
+        ('Open', 'Открыт'),
+        ('InWork', 'В работе'),
+        ('Completed', 'Завершён'),
+        ('Cancelled', 'Отменён'),
     ]
 
     title = models.CharField("Заголовок", max_length=200)
@@ -224,3 +225,48 @@ class Response(models.Model):
 
     def __str__(self):
         return f'Отклик #{self.pk} by {self.user.username} на {self.order.title}'
+
+class Notification(models.Model):
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    verb       = models.CharField("Текст уведомления", max_length=255)
+    link       = models.CharField("URL или имя пути", max_length=255, blank=True,
+                                 help_text="Можно передать reverse('viewname', args=[...])")
+    is_read    = models.BooleanField("Прочитано", default=False)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+
+    def __str__(self):
+        return f"{self.verb} ({'прочитано' if self.is_read else 'новое'})"
+
+    def get_absolute_url(self):
+        try:
+            return reverse(self.link)
+        except:
+            return self.link
+        
+class Chat(models.Model):
+    """Чат, привязанный к заказу и отклику"""
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='chats')
+    freelancer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='freelancer_chats')
+    client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='client_chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Chat {self.order.id} between {self.client} and {self.freelancer}"
+
+class Message(models.Model):
+    """Сообщение в чате"""
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f"{self.sender} @ {self.timestamp:%Y-%m-%d %H:%M}"  

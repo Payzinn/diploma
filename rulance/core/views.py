@@ -4,10 +4,10 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
-from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response
-from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm
+from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message
+from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm
 from django.core.exceptions import PermissionDenied    
-
+from django.contrib import messages
 
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
@@ -18,7 +18,7 @@ def orders(request):
     sphere_types  = SphereType.objects.all()
 
     qs = Order.objects.filter(status='Открыт') \
-                      .annotate(responses_count=Count('responses'))
+                      .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
 
     search = request.GET.get('search', '').strip()
     if search:
@@ -89,85 +89,92 @@ def switch_role(request):
 
 @login_required
 def profile(request, pk=None):
-    # 1) Определяем, чей профиль
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
     else:
         profile_user = request.user
-
     is_own = (profile_user == request.user)
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     context = {
-        'profile_user': profile_user,
-        'is_own':       is_own,
+        'profile_user':  profile_user,
+        'is_own':        is_own,
         'has_portfolio': has_portfolio,
     }
 
-    # 2) Если у профиля — Клиент, готовим список его заказов
+    client_orders = []
     if profile_user.role == 'Client':
         qs = (
             Order.objects
                  .filter(client=profile_user)
-                 .annotate(responses_count=Count('responses'))
+                 .annotate(
+                     responses_count=Count(
+                         'responses',
+                         filter=Q(responses__status='Pending')
+                     )
+                 )
                  .select_related('sphere', 'sphere_type')
         )
-        # Если мы зашли НЕ в свой профиль и мы — Фрилансер, 
-        # нужно отметить, где у нас уже есть отклик:
         if not is_own and request.user.role == 'Freelancer':
             my_resps = Response.objects.filter(
                 order__client=profile_user,
                 user=request.user
             )
             resp_map = {r.order_id: r for r in my_resps}
-            client_orders = []
             for o in qs:
                 o.user_response = resp_map.get(o.pk)
                 client_orders.append(o)
         else:
             client_orders = list(qs)
 
-        context['client_orders'] = client_orders
+    context['client_orders'] = client_orders
 
-    # 3) Если это мой профиль, собираем отклики и табы
     if is_own:
         if profile_user.role == 'Client':
-            all_resps = Response.objects.filter(order__client=profile_user)
+            all_pending = Response.objects.filter(order__client=profile_user, status='Pending')
+            all_in_work = Response.objects.filter(order__client=profile_user, status='Accepted')
+            completed_items = Order.objects.filter(client=profile_user, status='Completed') \
+                                           .annotate(
+                                               responses_count=Count(
+                                                   'responses',
+                                                   filter=Q(responses__status='Pending')
+                                               )
+                                           ) \
+                                           .select_related('sphere','sphere_type')
             tab_label = 'Отклики исполнителей'
         else:
-            all_resps = Response.objects.filter(user=profile_user)
+            all_pending = Response.objects.filter(user=profile_user, status='Pending')
+            all_in_work = Response.objects.filter(user=profile_user, status='Accepted')
+            completed_items = Response.objects.filter(user=profile_user, status='Rejected')
             tab_label = 'Мои отклики'
 
-        pending   = all_resps.filter(status='Pending')
-        in_work   = all_resps.filter(status='Accepted')
-        completed = all_resps.filter(status='Rejected')
+        chat_map = {}
+        if profile_user.role == 'Client':
+            chats = Chat.objects.filter(
+                order__client=profile_user,
+                freelancer__in=[r.user for r in all_in_work]
+            )
+            chat_map = {
+                (c.order_id, c.freelancer_id): c
+                for c in chats
+            }
+            for resp in all_in_work:
+                resp.chat = chat_map.get((resp.order_id, resp.user_id))
 
-        # по умолчанию для Клиента открывать «orders», для Фрилансера — «pending»
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
-        valid_tabs = ['orders', 'pending', 'in_work', 'completed']
-        if current_tab not in valid_tabs:
+        if current_tab not in ('orders', 'pending', 'in_work', 'completed'):
             current_tab = default_tab
 
         context.update({
-            'pending':     pending,
-            'in_work':     in_work,
-            'completed':   completed,
+            'pending':     all_pending,
+            'in_work':     all_in_work,
+            'completed':   completed_items,
             'current_tab': current_tab,
             'tab_label':   tab_label,
         })
 
     return render(request, 'profile.html', context)
-
-@login_required
-def response_accept(request, pk):
-    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
-    resp.status = 'Accepted'
-    resp.save()
-    order = resp.order
-    order.status = 'В работе'
-    order.save()
-    return redirect(reverse('profile'))
 
 @login_required
 def response_reject(request, pk):
@@ -311,4 +318,69 @@ def response_detail(request, pk):
 
     return render(request, 'response_detail.html', {
         'resp': resp
+    })
+
+@login_required
+def response_accept(request, pk):
+    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
+    resp.status = 'Accepted'
+    resp.save()
+    order = resp.order
+    order.status = 'В работе'
+    order.save()
+
+    chat, _ = Chat.objects.get_or_create(
+        order=order,
+        freelancer=resp.user,
+        client=request.user
+    )
+
+    Notification.objects.create(
+        user=resp.user,
+        verb=f'Ваш отклик на «{order.title}» принят.',
+        link=reverse('chat_detail', args=[chat.pk])
+    )
+
+    return redirect('profile')
+
+@login_required
+def response_reject(request, pk):
+    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
+    resp.status = 'Rejected'
+    resp.save()
+    Notification.objects.create(
+        user=resp.user,
+        verb=f'Ваш отклик на «{resp.order.title}» отклонён.',
+        link=reverse('response_detail', args=[resp.pk])
+    )
+    return redirect('profile')
+
+@login_required
+def notifications_list(request):
+    qs = request.user.notifications.all()
+    qs.filter(is_read=False).update(is_read=True)
+    return render(request, 'notifications_list.html', {'notifications': qs})
+
+
+@login_required
+def chat_detail(request, chat_id):
+    chat = get_object_or_404(Chat, pk=chat_id)
+    if request.user not in (chat.client, chat.freelancer):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.chat = chat
+            msg.sender = request.user
+            msg.save()
+            return redirect('chat_detail', chat_id=chat.pk)
+    else:
+        form = MessageForm()
+
+    return render(request, 'chat_detail.html', {
+        'chat': chat,
+        'messages': chat.messages.select_related('sender').all(),
+        'form': form,
     })

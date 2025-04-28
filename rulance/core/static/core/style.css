@@ -1393,7 +1393,6 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* сброс — чтобы была на одном уровне, но менее броской */
 .button-reset {
   background-color: #6B7280;
   color: #FFFFFF;
@@ -1426,3 +1425,4 @@ body {
   width: 95%;
   text-align: center;
 }
+
