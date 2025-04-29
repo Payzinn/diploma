@@ -17,7 +17,7 @@ def orders(request):
     spheres       = Sphere.objects.all()
     sphere_types  = SphereType.objects.all()
 
-    qs = Order.objects.filter(status='Открыт') \
+    qs = Order.objects.filter(status='Open') \
                       .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
 
     search = request.GET.get('search', '').strip()
@@ -90,12 +90,12 @@ def switch_role(request):
 @login_required
 def profile(request, pk=None):
     profile_user = get_object_or_404(User, pk=pk) if pk else request.user
-    is_own       = (profile_user == request.user)
+    is_own = (profile_user == request.user)
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     context = {
-        'profile_user':  profile_user,
-        'is_own':        is_own,
+        'profile_user': profile_user,
+        'is_own': is_own,
         'has_portfolio': has_portfolio,
     }
 
@@ -129,25 +129,54 @@ def profile(request, pk=None):
     if is_own:
         if profile_user.role == 'Client':
             tab_label = 'Отклики исполнителей'
-            pending   = Response.objects.filter(order__client=profile_user, status='Pending')
-            in_work   = Response.objects.filter(order__client=profile_user, status='Accepted')
-            completed = Order.objects.filter(client=profile_user, status='Completed') \
-                                     .annotate(
-                                         responses_count=Count(
-                                             'responses',
-                                             filter=Q(responses__status='Pending')
-                                         )
-                                     ) \
-                                     .select_related('sphere','sphere_type')
+            pending = Response.objects.filter(
+                order__client=profile_user,
+                status='Pending'
+            ).select_related('order', 'user')
+            in_work = Response.objects.filter(
+                order__client=profile_user,
+                status='Accepted',
+                order__status='InWork'
+            ).select_related('order', 'user')
+            completed = Order.objects.filter(
+                client=profile_user,
+                status='Completed'
+            ).annotate(
+                responses_count=Count(
+                    'responses',
+                    filter=Q(responses__status='Pending')
+                )
+            ).select_related('sphere', 'sphere_type')
+            cancelled = Order.objects.filter(
+                client=profile_user,
+                status='Cancelled'
+            ).annotate(
+                responses_count=Count(
+                    'responses',
+                    filter=Q(responses__status='Pending')
+                )
+            ).select_related('sphere', 'sphere_type')
         else:
             tab_label = 'Мои отклики'
-            pending = Response.objects.filter(user=profile_user, status='Pending')
-            in_work = Response.objects.filter(user=profile_user, status='Accepted')
+            pending = Response.objects.filter(
+                user=profile_user,
+                status='Pending'
+            ).select_related('order', 'order__client')
+            in_work = Response.objects.filter(
+                user=profile_user,
+                status='Accepted',
+                order__status='InWork'
+            ).select_related('order', 'order__client')
             completed = Response.objects.filter(
                 user=profile_user,
                 status='Accepted',
                 order__status='Completed'
-            )
+            ).select_related('order', 'order__client')
+            cancelled = Order.objects.filter(
+                responses__user=profile_user,
+                responses__status='Accepted',
+                status='Cancelled'
+            ).select_related('sphere', 'sphere_type')
 
         resp_list = list(in_work) + list(completed)
         order_ids = [r.order_id for r in resp_list]
@@ -171,14 +200,15 @@ def profile(request, pk=None):
 
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
-        if current_tab not in ('orders','pending','in_work','completed'):
+        if current_tab not in ('orders', 'pending', 'in_work', 'completed', 'cancelled'):
             current_tab = default_tab
 
         context.update({
-            'tab_label':   tab_label,
-            'pending':     pending,
-            'in_work':     in_work,
-            'completed':   completed,
+            'tab_label': tab_label,
+            'pending': pending,
+            'in_work': in_work,
+            'completed': completed,
+            'cancelled': cancelled,
             'current_tab': current_tab,
         })
 

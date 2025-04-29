@@ -4,7 +4,7 @@
 {% block title %}Профиль – {{ profile_user.full_name|default:profile_user.username }}{% endblock %}
 
 {% block content %}
-  <!-- 1) Карточка профиля -->
+  <!-- Карточка профиля -->
   <section class="container profile">
     <h2 class="page_header profile__title">
       {{ profile_user.full_name|default:profile_user.username }}
@@ -54,7 +54,7 @@
     </div>
   </section>
 
-  <!-- 2) Если это чужой профиль Клиента, сразу его заказы -->
+  <!-- Заказы чужого клиента -->
   {% if profile_user.role == 'Client' and not is_own %}
     <section class="client-orders container">
       <h2 class="page_header">
@@ -69,7 +69,6 @@
                   {{ order.title }}
                 </a>
                 <span class="order-item__responses">
-                  <!-- svg глаз сюда -->
                   <span class="order-item__count">{{ order.responses_count }}</span>
                 </span>
               </h3>
@@ -104,7 +103,7 @@
     </section>
   {% endif %}
 
-  <!-- 3) Если это мой профиль, показываем табы -->
+  <!-- Табы для собственного профиля -->
   {% if is_own %}
     <section class="profile__responses container">
       <div class="profile__tabs">
@@ -126,6 +125,10 @@
            class="profile__tab {% if current_tab == 'completed' %}active{% endif %}">
           Завершённые <span class="profile__badge">{{ completed.count }}</span>
         </a>
+        <a href="?tab=cancelled"
+           class="profile__tab {% if current_tab == 'cancelled' %}active{% endif %}">
+          Отменённые <span class="profile__badge">{{ cancelled.count }}</span>
+        </a>
       </div>
 
       <div class="profile__tab-content">
@@ -140,7 +143,6 @@
                       {{ order.title }}
                     </a>
                     <span class="order-item__responses">
-                      <!-- svg глаз -->
                       <span class="order-item__count">{{ order.responses_count }}</span>
                     </span>
                   </h3>
@@ -160,12 +162,6 @@
                   <div class="order-item__date">
                     Создано: {{ order.created_at|date:"d.m.Y H:i" }}
                   </div>
-                  {% if order.user_response %}
-                    <div class="order-item__your-response">
-                      <span>Статус вашего отклика:</span>
-                      <strong>{{ order.user_response.get_status_display }}</strong>
-                    </div>
-                  {% endif %}
                 </li>
               {% endfor %}
             </ul>
@@ -198,10 +194,12 @@
                   </p>
                   <div class="response-actions">
                     <p><strong>Отклик:</strong>
-                    <a href="{% url 'response_detail' resp.pk %}" class="profile__link">
-                      Посмотреть отклик
-                    </a>
-                  <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+                      <a href="{% url 'response_detail' resp.pk %}" class="profile__link">
+                        Посмотреть отклик
+                      </a>
+                    </p>
+                    <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+                  </div>
                 </li>
               {% endfor %}
             </ul>
@@ -225,10 +223,12 @@
                       {{ resp.order.title }}
                     </a>
                   </p>
-                  <p><strong>Чат</strong>
-                  {% if resp.chat %}
-                    <a href="{% url 'chat_detail' resp.chat.pk %}" class="profile__link">Перейти в чат</a>
-                  {% endif %}
+                  <p><strong>Чат:</strong>
+                    {% if resp.chat %}
+                      <a href="{% url 'chat_detail' resp.chat.pk %}" class="profile__link">Перейти в чат</a>
+                    {% else %}
+                      Чат не создан
+                    {% endif %}
                   </p>
                   <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
                   <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
@@ -246,7 +246,7 @@
               {% for resp in completed %}
                 <li class="response-item">
                   <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}">
+                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
                       {{ resp.order.title }}
                     </a>
                   </p>
@@ -258,6 +258,45 @@
             </ul>
           {% else %}
             <p class="empty-state">Нет завершённых заказов.</p>
+          {% endif %}
+
+        {% elif current_tab == 'cancelled' %}
+          {% if cancelled %}
+            <ul class="orders-list">
+              {% for order in cancelled %}
+                <li class="order-item">
+                  <h3 class="order-item__title">
+                    <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+                      {{ order.title }}
+                    </a>
+                  </h3>
+                  <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
+                  <div class="order-item__meta">
+                    <span>Категория:</span>
+                    <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+                  </div>
+                  <div class="order-item__price">
+                    <span>Цена:</span>
+                    {% if order.is_negotiable %}
+                      <strong>Договорная</strong>
+                    {% else %}
+                      <strong>{{ order.price }} ₽</strong>
+                    {% endif %}
+                  </div>
+                  <div class="order-item__date">
+                    Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+                  </div>
+                  {% if order.reason_of_cancel %}
+                    <div class="order-item__reason">
+                      <span>Причина отмены:</span>
+                      <strong>{{ order.reason_of_cancel }}</strong>
+                    </div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty-state">Нет отменённых заказов.</p>
           {% endif %}
         {% endif %}
       </div>
