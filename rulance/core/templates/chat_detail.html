@@ -4,14 +4,31 @@
 
 {% block content %}
 <section class="container chat">
-  <h2 class="page_header">Чат: {{ chat.order.title }}</h2>
+  <h2 class="page_header">Чат по заказу</h2>
+
+  <p class="chat__meta">
+    <strong>Ссылка на заказ:</strong>
+    <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">{{ chat.order.title }}</a>
+  </p>
+  <p class="chat__meta">
+    <strong>Фрилансер:</strong>
+    <a href="{% url 'profile_detail' chat.freelancer.pk %}" class="profile__link">
+      {{ chat.freelancer.full_name|default:chat.freelancer.username }}
+    </a>
+  </p>
 
   <div id="chat-window" class="chat__window">
     {% for msg in messages %}
       <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}">
-        <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
+        <img src="{{ msg.sender.avatar.url }}" 
+             alt="{{ msg.sender.username }}" 
+             class="chat__avatar">
         <div class="chat__body">
-          <strong>{{ msg.sender.full_name|default:msg.sender.username }}</strong>
+          <strong>
+            <a href="{% url 'profile_detail' msg.sender.pk %}" class="profile__link">
+              {{ msg.sender.full_name|default:msg.sender.username }}
+            </a>
+          </strong>
           <p>{{ msg.text }}</p>
           <small class="chat__time">{{ msg.timestamp|date:"H:i" }}</small>
         </div>
@@ -20,7 +37,11 @@
   </div>
 
   <form id="chat-form" class="chat__form">
-    <input id="chat-input" type="text" placeholder="Введите сообщение…" autocomplete="off" required>
+    <input id="chat-input" 
+           type="text" 
+           placeholder="Введите сообщение…" 
+           autocomplete="off" 
+           required>
     <button type="submit" class="button">Отправить</button>
   </form>
 </section>
@@ -32,7 +53,6 @@
   const inputEl    = document.getElementById('chat-input');
   const formEl     = document.getElementById('chat-form');
 
-  // собираем URL
   const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const socketUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
   const chatSocket = new WebSocket(socketUrl);
@@ -52,7 +72,7 @@
     msgEl.innerHTML = `
       <img src="${data.avatar_url}" class="chat__avatar" alt="${data.sender}">
       <div class="chat__body">
-        <strong>${data.sender_full_name}</strong>
+        <strong><a href="/profile/${data.sender_id}/" class="profile__link">${data.sender_full_name}</a></strong>
         <p>${data.message}</p>
         <small class="chat__time">${data.time}</small>
       </div>

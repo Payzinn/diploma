@@ -293,8 +293,12 @@ body {
   }
 
   /* profile tabs */
+  .empty-state{
+    margin: 1rem 0;
+  }
   .profile__tabs {
     display: flex;
+    justify-content: center;
     gap: 1rem;
     margin-top: 2rem;
   }
@@ -836,6 +840,7 @@ body {
   
   .orders-list {
     display: flex;
+    margin: 1rem 0;
     flex-direction: column;
     gap: 20px;
   }
@@ -1273,7 +1278,6 @@ body {
   box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 
-/* Общие секции */
 .response-detail__section {
   margin-bottom: 24px;
 }
@@ -1281,7 +1285,6 @@ body {
   margin-bottom: 0;
 }
 
-/* Заголовок секции */
 .response-detail__section-title {
   font-size: 1.125rem;
   color: #E5E7EB;
@@ -1290,7 +1293,6 @@ body {
   margin: 0 0 12px;
 }
 
-/* Многострочное описание */
 .response-detail__description {
   color: #F3F4F6;
   font-size: 1rem;
@@ -1298,7 +1300,6 @@ body {
   margin: 0;
 }
 
-/* Список определений (остальные поля) */
 .response-detail__dl {
   margin: 0 0 24px;
   padding: 0;
@@ -1334,7 +1335,6 @@ body {
   text-decoration: underline;
 }
 
-/* Кнопка «Назад» */
 
 .response-detail__row-buttons {
   display: flex;
@@ -1356,7 +1356,6 @@ body {
   box-shadow: 0 3px 8px rgba(0,0,0,0.3);
 }
 
-/* === МАЛЫЕ КНОПКИ ПРИНЯТИЯ/ОТКЛОНЕНИЯ === */
 .response-detail__actions {
   display: flex;
   flex-direction: column; 
@@ -1428,11 +1427,20 @@ body {
 
 
 /* chat_detail.html */
+.chat__message--self .chat__body a{
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+.chat__message--self .chat__body a:hover{
+  color: #c4c4c4;
+  text-decoration: underline;
+}
+
 .chat__message .chat__body {
   max-width: 50ch;
   word-break: break-word;
 }
-
+empty-state
 .chat {
   margin-bottom: 50px;
 }
@@ -1496,7 +1504,7 @@ body {
   line-height: 1.4;
 }
 
-/* Время отправки (мелким шрифтом справа под текстом) */
+/* Время отправки сообщения */
 .chat__time {
   display: block;
   font-size: 0.75rem;
@@ -1504,7 +1512,6 @@ body {
   text-align: right;
 }
 
-/* Свой блок: выравниваем текст и фон чуть другим цветом */
 .chat__message--self .chat__body {
   background: #3B82F6;
 }
@@ -1518,7 +1525,7 @@ body {
   color: rgba(255,255,255,0.7);
 }
 
-/* Форма ввода */
+/* Форма ввода сообщения*/
 .chat__form {
   display: flex;
   gap: 8px;

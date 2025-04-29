@@ -31,6 +31,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "type": "chat.message",
                 "message": text,
                 "sender": user.username,
+                "sender_id": user.id, 
                 "avatar_url": user.avatar.url or "",
                 "sender_full_name": user.full_name or user.username,
                 "time": msg.timestamp.strftime("%H:%M"),
