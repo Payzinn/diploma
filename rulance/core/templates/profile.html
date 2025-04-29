@@ -180,24 +180,25 @@
                 <li class="response-item">
                   {% if profile_user.role == 'Client' %}
                     <p><strong>Фрилансер:</strong>
-                      <a href="{% url 'profile_detail' resp.user.pk %}">
+                      <a href="{% url 'profile_detail' resp.user.pk %}" class="profile__link">
                         {{ resp.user.full_name|default:resp.user.username }}
                       </a>
                     </p>
                   {% else %}
                     <p><strong>Заказчик:</strong>
-                      <a href="{% url 'profile_detail' resp.order.client.pk %}">
+                      <a href="{% url 'profile_detail' resp.order.client.pk %}" class="profile__link">
                         {{ resp.order.client.full_name|default:resp.order.client.username }}
                       </a>
                     </p>
                   {% endif %}
                   <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}">
+                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
                       {{ resp.order.title }}
                     </a>
                   </p>
                   <div class="response-actions">
-                    <a href="{% url 'response_detail' resp.pk %}" class="button-small">
+                    <p><strong>Отклик:</strong>
+                    <a href="{% url 'response_detail' resp.pk %}" class="profile__link">
                       Посмотреть отклик
                     </a>
                   <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
@@ -220,13 +221,13 @@
               {% for resp in in_work %}
                 <li class="response-item">
                   <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}">
+                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
                       {{ resp.order.title }}
                     </a>
                   </p>
                   <p><strong>Чат</strong>
                   {% if resp.chat %}
-                    <a href="{% url 'chat_detail' resp.chat.pk %}" class="button-small">Перейти в чат</a>
+                    <a href="{% url 'chat_detail' resp.chat.pk %}" class="profile__link">Перейти в чат</a>
                   {% endif %}
                   </p>
                   <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
