@@ -260,10 +260,13 @@ class Chat(models.Model):
 
 class Message(models.Model):
     """Сообщение в чате"""
+    SYSTEM = 'system'
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     text = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_system   = models.BooleanField(default=False)
+    extra_data  = models.JSONField(blank=True, null=True)
 
     class Meta:
         ordering = ['timestamp']

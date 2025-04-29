@@ -13,6 +13,12 @@
   text-align: center;
 }
 
+button{
+  outline: none;
+  cursor: pointer;
+}
+
+
 body {
     background-color: #1C2526;
     color: #FFFFFF;
@@ -509,6 +515,14 @@ body {
     position: relative;
     padding: 24px;
     animation: fadeIn 0.2s ease-out;
+  }
+
+  textarea#cancel-reason {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
   }
   
   @keyframes fadeIn {
@@ -1361,7 +1375,7 @@ body {
   flex-direction: column; 
   gap: 12px;
   margin-top: 24px;
-  align-items: center;    
+  margin-bottom: 24px;
 }
 
 /* базовый маленький button */
@@ -1529,7 +1543,8 @@ empty-state
 .chat__form {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 24px;
+  margin-bottom: 24px;
 }
 .chat__form input[type="text"] {
   flex: 1;
@@ -1559,4 +1574,11 @@ empty-state
 .chat__form .button:hover {
   background-color: #2563EB;
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.chat__date-separator {
+  text-align: center;
+  margin: 1rem 0;
+  color: #999;
+  font-size: 0.85rem;
 }

@@ -392,3 +392,25 @@ def chat_detail(request, chat_id):
         'messages': chat.messages.select_related('sender').all(),
         'form': form,
     })
+
+@login_required
+def order_complete(request, pk):
+    order = get_object_or_404(Order, pk=pk, client=request.user)
+    if order.status != 'InWork':
+        messages.error(request, 'Нельзя завершить заказ в текущем статусе.')
+    else:
+        order.status = 'Completed'
+        order.save()
+        messages.success(request, 'Заказ отмечен как выполненный.')
+    return redirect('profile')
+
+@login_required
+def order_cancel(request, pk):
+    order = get_object_or_404(Order, pk=pk, client=request.user)
+    if order.status not in ('Open', 'InWork'):
+        messages.error(request, 'Нельзя отменить заказ в текущем статусе.')
+    else:
+        order.status = 'Cancelled'
+        order.save()
+        messages.success(request, 'Заказ отменен.')
+    return redirect('profile')

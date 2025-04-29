@@ -1,16 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block title %}Чат по заказу «{{ chat.order.title }}»{% endblock %}
 
 {% block content %}
 <section class="container chat">
-  <h2 class="page_header">Чат по заказу</h2>
+  <h2 class="page_header">Чат по заказу «{{ chat.order.title }}»</h2>
 
   <p class="chat__meta">
     <strong>Ссылка на заказ:</strong>
-    <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">
-      {{ chat.order.title }}
-    </a>
+    <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">{{ chat.order.title }}</a>
   </p>
   <p class="chat__meta">
     <strong>Фрилансер:</strong>
@@ -19,115 +18,249 @@
     </a>
   </p>
 
+  {% if request.user == chat.order.client and chat.order.status == 'InWork' %}
+    <div class="chat__actions">
+      <button 
+        type="button"
+        id="request-complete"
+        class="button-small js-confirm-action"
+        data-action="complete_request"
+        data-confirm-message="Вы уверены, что хотите запросить завершение заказа?">
+        Запросить завершение
+      </button>
+      <button 
+        type="button"
+        id="request-cancel"
+        class="button-small button-small--danger js-confirm-action"
+        data-action="cancel_request"
+        data-confirm-message="Вы уверены, что хотите запросить отмену заказа?">
+        Запросить отмену
+      </button>
+    </div>
+  {% endif %}
+
   <div id="chat-window" class="chat__window">
-    {# Внутри рендерим дату при смене календарного дня #}
     {% for msg in messages %}
-      {% ifchanged msg.timestamp|date:"Y-m-d" %}
-        <div class="chat__date-separator">
-          {{ msg.timestamp|date:"d.m.Y" }}
-        </div>
+      {% ifchanged msg.timestamp|date:'Y-m-d' %}
+        <div class="chat__date-separator">{{ msg.timestamp|date:'d.m.Y' }}</div>
       {% endifchanged %}
 
-      <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}"
-           data-date="{{ msg.timestamp|date:'Y-m-d' }}">
-        <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
-        <div class="chat__body">
-          <strong>
-            <a href="{% url 'profile_detail' msg.sender.pk %}" class="profile__link">
-              {{ msg.sender.full_name|default:msg.sender.username }}
-            </a>
-          </strong>
-          <p>{{ msg.text }}</p>
-          <small class="chat__time">{{ msg.timestamp|date:"H:i" }}</small>
+      {% if msg.is_system %}
+        <div class="chat__message chat__message--system" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
+          <div class="chat__body chat__body--system">
+            <p>{{ msg.text }}</p>
+            {% if msg.extra_data and msg.extra_data.type in 'cancel_request,complete_request' and request.user == chat.freelancer and not msg.extra_data.response %}
+              <div class="chat__system-buttons">
+                <button data-action="cancel_response" data-response="yes" class="button-small">Согласен</button>
+                <button data-action="cancel_response" data-response="no" class="button-small button-small--danger">Не согласен</button>
+              </div>
+            {% endif %}
+          </div>
         </div>
-      </div>
+      {% else %}
+        <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
+          {% if msg.sender != user %}
+            <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
+          {% endif %}
+          <div class="chat__body">
+            <strong>
+              <a href="{% url 'profile_detail' msg.sender.pk %}" class="profile__link">
+                {{ msg.sender.full_name|default:msg.sender.username }}
+              </a>
+            </strong>
+            <p>{{ msg.text }}</p>
+            <small class="chat__time">{{ msg.timestamp|date:'H:i' }}</small>
+          </div>
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
 
   <form id="chat-form" class="chat__form">
-    <input id="chat-input"
-           type="text"
-           placeholder="Введите сообщение…"
-           autocomplete="off"
-           required>
+    <input id="chat-input" type="text" placeholder="Введите сообщение…" autocomplete="off" required>
     <button type="submit" class="button">Отправить</button>
   </form>
 </section>
 
-<style>
-  /* разделитель дат */
-  .chat__date-separator {
-    text-align: center;
-    margin: 1rem 0;
-    color: #999;
-    font-size: 0.85rem;
-  }
-</style>
-
 <script>
-(function() {
-  const chatWindow = document.getElementById('chat-window');
-  let lastDate = null;
+  // <![CDATA[
+  (function() {
+    const chatWindow = document.getElementById('chat-window');
+    document.addEventListener('DOMContentLoaded', () => {
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
 
-  const lastMsg = chatWindow.querySelector('.chat__message:last-of-type');
-  if (lastMsg) {
-    lastDate = lastMsg.dataset.date;
-  }
+    let lastDate = null;
+    const lastMsg = chatWindow.querySelector('[data-date]:last-of-type');
+    if (lastMsg) lastDate = lastMsg.dataset.date;
 
-  const chatId  = "{{ chat.pk }}";
-  const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const socketUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
-  const chatSocket = new WebSocket(socketUrl);
+    const CURRENT_USER_ID = {{ user.pk|default:0 }};
+    const FREELANCER_ID = {{ chat.freelancer.pk|default:0 }};
+    const chatId = "{{ chat.pk }}";
+    const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${wsScheme}://${location.host}/ws/chat/${chatId}/`);
 
-  chatSocket.onopen = () => console.log('[chat] WS connected');
-  chatSocket.onerror = e => console.error('[chat] WS error', e);
-  chatSocket.onclose = e => console.warn('[chat] WS closed', e);
+    socket.onopen = () => console.log('[chat] WS connected');
+    socket.onerror = e => console.error('[chat] WS error', e);
+    socket.onclose = e => console.warn('[chat] WS closed', e);
 
-  chatSocket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    const newDate = data.date;             
-    const readableDate = data.date_readable; 
+    socket.onmessage = e => {
+      const data = JSON.parse(e.data);
+      if (!data || !data.date || !data.message) {
+        console.error('[chat] Invalid message data', data);
+        return;
+      }
 
-    if (newDate !== lastDate) {
-      const sep = document.createElement('div');
-      sep.className = 'chat__date-separator';
-      sep.textContent = readableDate;
-      chatWindow.appendChild(sep);
-      lastDate = newDate;
-    }
+      if (data.date !== lastDate) {
+        const sep = document.createElement('div');
+        sep.className = 'chat__date-separator';
+        sep.textContent = data.date_readable || new Date(data.date).toLocaleDateString('ru-RU');
+        chatWindow.appendChild(sep);
+        lastDate = data.date;
+      }
 
-    // создаём сам блок сообщения
-    const msgEl = document.createElement('div');
-    msgEl.classList.add('chat__message');
-    if (data.sender === "{{ user.username }}") {
-      msgEl.classList.add('chat__message--self');
-    }
-    msgEl.dataset.date = newDate;
+      function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
 
-    msgEl.innerHTML = `
-      <img src="${data.avatar_url}" class="chat__avatar" alt="${data.sender}">
-      <div class="chat__body">
-        <strong>
-          <a href="/profile/${data.sender_id}/" class="profile__link">
-            ${data.sender_full_name}
-          </a>
-        </strong>
-        <p>${data.message}</p>
-        <small class="chat__time">${data.time}</small>
-      </div>
-    `;
-    chatWindow.appendChild(msgEl);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-  };
+      if (data.is_system) {
+        const sysEl = document.createElement('div');
+        sysEl.className = 'chat__message chat__message--system';
+        sysEl.dataset.date = data.date;
+        let inner = `<div class="chat__body chat__body--system"><p>${escapeHTML(data.message)}</p>`;
 
-  document.getElementById('chat-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-    chatSocket.send(JSON.stringify({ message: text }));
-    input.value = '';
-  });
-})();
+        if ((data.type === 'cancel_request' || data.type === 'complete_request') &&
+            CURRENT_USER_ID === FREELANCER_ID &&
+            !data.extra_data?.response) {
+          inner += `
+            <div class="chat__system-buttons">
+              <button data-action="cancel_response" data-response="yes" class="button-small">Согласен</button>
+              <button data-action="cancel_response" data-response="no" class="button-small button-small--danger">Не согласен</button>
+            </div>`;
+        }
+
+        inner += '</div>';
+        sysEl.innerHTML = inner;
+        chatWindow.appendChild(sysEl);
+      } else {
+        const msgEl = document.createElement('div');
+        msgEl.className = `chat__message ${data.sender_id === CURRENT_USER_ID ? 'chat__message--self' : ''}`;
+        msgEl.dataset.date = data.date;
+
+        let html = '';
+        if (data.sender_id !== CURRENT_USER_ID) {
+          html += `<img src="${escapeHTML(data.avatar_url)}" class="chat__avatar" alt="${escapeHTML(data.sender)}">`;
+        }
+        html += `
+          <div class="chat__body">
+            <strong>
+              <a href="/profile/${data.sender_id}/" class="profile__link">
+                ${escapeHTML(data.sender_full_name)}
+              </a>
+            </strong>
+            <p>${escapeHTML(data.message)}</p>
+            <small class="chat__time">${escapeHTML(data.time)}</small>
+          </div>`;
+
+        msgEl.innerHTML = html;
+        msgEl.dataset.date = data.date; // Добавлено для корректной обработки даты
+        chatWindow.appendChild(msgEl);
+      }
+
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    };
+
+    document.getElementById('chat-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      socket.send(JSON.stringify({ action: 'message', message: text }));
+      input.value = '';
+    });
+
+    // Перехват событий для js-confirm-action
+    document.querySelectorAll('.js-confirm-action').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation(); // Предотвращаем вызов confirm.js
+        const message = el.dataset.confirmMessage;
+        const action = el.dataset.action;
+
+        const modal = document.getElementById('confirm-modal');
+        const msgEl = document.getElementById('confirm-modal-message');
+        const modalContent = modal.querySelector('.modal-content');
+
+        // Очистка содержимого модального окна
+        modalContent.innerHTML = `
+          <p id="confirm-modal-message">${message}</p>
+          <div class="modal__buttons">
+            <button id="confirm-yes" class="button-small">Да</button>
+            <button id="confirm-no" class="button-small button-small--danger">Нет</button>
+          </div>
+        `;
+
+        modal.classList.add('modal--show');
+
+        const btnYes = document.getElementById('confirm-yes');
+        const btnNo = document.getElementById('confirm-no');
+
+        btnYes.onclick = () => {
+          if (action === 'cancel_request') {
+            // Показываем модалку с вводом причины
+            modalContent.innerHTML = `
+              <p>Укажите причину отмены:</p>
+              <textarea id="cancel-reason" rows="4" style="width: 100%;" placeholder="Введите причину..."></textarea>
+              <div class="modal__buttons">
+                <button id="reason-submit" class="button-small">Отправить</button>
+                <button id="reason-cancel" class="button-small button-small--danger">Отмена</button>
+              </div>
+            `;
+            const submitBtn = document.getElementById('reason-submit');
+            const cancelBtn = document.getElementById('reason-cancel');
+            const reasonInput = document.getElementById('cancel-reason');
+
+            submitBtn.onclick = () => {
+              const reason = reasonInput.value.trim();
+              if (reason) {
+                socket.send(JSON.stringify({ action, reason }));
+                modal.classList.remove('modal--show');
+              } else {
+                alert('Пожалуйста, укажите причину отмены.');
+              }
+            };
+            cancelBtn.onclick = () => {
+              modal.classList.remove('modal--show');
+            };
+          } else {
+            // Для complete_request отправляем сразу
+            socket.send(JSON.stringify({ action }));
+            modal.classList.remove('modal--show');
+          }
+        };
+
+        btnNo.onclick = () => {
+          modal.classList.remove('modal--show');
+        };
+
+        // Закрытие по клику вне контента
+        modal.onclick = e => {
+          if (e.target === modal) modal.classList.remove('modal--show');
+        };
+      });
+    });
+
+    chatWindow.addEventListener('click', e => {
+      const btn = e.target.closest('.chat__system-buttons button');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const response = btn.dataset.response;
+      socket.send(JSON.stringify({ action, response }));
+      btn.parentNode.remove();
+    });
+  })();
+  // ]]>
 </script>
 {% endblock %}
