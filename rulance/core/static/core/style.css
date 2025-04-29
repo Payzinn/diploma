@@ -1428,6 +1428,11 @@ body {
 
 
 /* chat_detail.html */
+.chat__message .chat__body {
+  max-width: 50ch;
+  word-break: break-word;
+}
+
 .chat {
   margin-bottom: 50px;
 }
