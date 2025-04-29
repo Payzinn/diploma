@@ -103,6 +103,7 @@ class Order(models.Model):
         choices=STATUS_CHOICES,
         default='Открыт'
     )
+    reason_of_cancel = models.TextField(null=True, blank=True)
     client = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Заказчик")
 
     class Meta:
@@ -254,6 +255,7 @@ class Chat(models.Model):
     freelancer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='freelancer_chats')
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='client_chats')
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Chat {self.order.id} between {self.client} and {self.freelancer}"
@@ -265,11 +267,11 @@ class Message(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     text = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    is_system   = models.BooleanField(default=False)
-    extra_data  = models.JSONField(blank=True, null=True)
+    is_system = models.BooleanField(default=False)
+    extra_data = models.JSONField(blank=True, null=True, default=dict)
 
     class Meta:
         ordering = ['timestamp']
 
     def __str__(self):
-        return f"{self.sender} @ {self.timestamp:%Y-%m-%d %H:%M}"  
+        return f"{self.sender} @ {self.timestamp:%Y-%m-%d %H:%M}"

@@ -334,7 +334,7 @@ def response_accept(request, pk):
     resp.status = 'Accepted'
     resp.save()
     order = resp.order
-    order.status = 'В работе'
+    order.status = 'InWork'
     order.save()
 
     chat, _ = Chat.objects.get_or_create(
@@ -410,7 +410,5 @@ def order_cancel(request, pk):
     if order.status not in ('Open', 'InWork'):
         messages.error(request, 'Нельзя отменить заказ в текущем статусе.')
     else:
+        reason = request.POST.get('reason', '')
         order.status = 'Cancelled'
-        order.save()
-        messages.success(request, 'Заказ отменен.')
-    return redirect('profile')

@@ -1372,6 +1372,7 @@ body {
 
 .response-detail__actions {
   display: flex;
+  align-items: center;
   flex-direction: column; 
   gap: 12px;
   margin-top: 24px;
