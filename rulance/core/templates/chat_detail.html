@@ -8,7 +8,9 @@
 
   <p class="chat__meta">
     <strong>Ссылка на заказ:</strong>
-    <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">{{ chat.order.title }}</a>
+    <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">
+      {{ chat.order.title }}
+    </a>
   </p>
   <p class="chat__meta">
     <strong>Фрилансер:</strong>
@@ -18,11 +20,17 @@
   </p>
 
   <div id="chat-window" class="chat__window">
+    {# Внутри рендерим дату при смене календарного дня #}
     {% for msg in messages %}
-      <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}">
-        <img src="{{ msg.sender.avatar.url }}" 
-             alt="{{ msg.sender.username }}" 
-             class="chat__avatar">
+      {% ifchanged msg.timestamp|date:"Y-m-d" %}
+        <div class="chat__date-separator">
+          {{ msg.timestamp|date:"d.m.Y" }}
+        </div>
+      {% endifchanged %}
+
+      <div class="chat__message {% if msg.sender == user %}chat__message--self{% endif %}"
+           data-date="{{ msg.timestamp|date:'Y-m-d' }}">
+        <img src="{{ msg.sender.avatar.url }}" alt="{{ msg.sender.username }}" class="chat__avatar">
         <div class="chat__body">
           <strong>
             <a href="{% url 'profile_detail' msg.sender.pk %}" class="profile__link">
@@ -37,22 +45,36 @@
   </div>
 
   <form id="chat-form" class="chat__form">
-    <input id="chat-input" 
-           type="text" 
-           placeholder="Введите сообщение…" 
-           autocomplete="off" 
+    <input id="chat-input"
+           type="text"
+           placeholder="Введите сообщение…"
+           autocomplete="off"
            required>
     <button type="submit" class="button">Отправить</button>
   </form>
 </section>
 
+<style>
+  /* разделитель дат */
+  .chat__date-separator {
+    text-align: center;
+    margin: 1rem 0;
+    color: #999;
+    font-size: 0.85rem;
+  }
+</style>
+
 <script>
 (function() {
-  const chatId     = "{{ chat.pk }}";
   const chatWindow = document.getElementById('chat-window');
-  const inputEl    = document.getElementById('chat-input');
-  const formEl     = document.getElementById('chat-form');
+  let lastDate = null;
 
+  const lastMsg = chatWindow.querySelector('.chat__message:last-of-type');
+  if (lastMsg) {
+    lastDate = lastMsg.dataset.date;
+  }
+
+  const chatId  = "{{ chat.pk }}";
   const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const socketUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
   const chatSocket = new WebSocket(socketUrl);
@@ -63,16 +85,33 @@
 
   chatSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
-    const isSelf = data.sender === "{{ user.username }}";
+    const newDate = data.date;             
+    const readableDate = data.date_readable; 
 
+    if (newDate !== lastDate) {
+      const sep = document.createElement('div');
+      sep.className = 'chat__date-separator';
+      sep.textContent = readableDate;
+      chatWindow.appendChild(sep);
+      lastDate = newDate;
+    }
+
+    // создаём сам блок сообщения
     const msgEl = document.createElement('div');
     msgEl.classList.add('chat__message');
-    if (isSelf) msgEl.classList.add('chat__message--self');
+    if (data.sender === "{{ user.username }}") {
+      msgEl.classList.add('chat__message--self');
+    }
+    msgEl.dataset.date = newDate;
 
     msgEl.innerHTML = `
       <img src="${data.avatar_url}" class="chat__avatar" alt="${data.sender}">
       <div class="chat__body">
-        <strong><a href="/profile/${data.sender_id}/" class="profile__link">${data.sender_full_name}</a></strong>
+        <strong>
+          <a href="/profile/${data.sender_id}/" class="profile__link">
+            ${data.sender_full_name}
+          </a>
+        </strong>
         <p>${data.message}</p>
         <small class="chat__time">${data.time}</small>
       </div>
@@ -81,16 +120,13 @@
     chatWindow.scrollTop = chatWindow.scrollHeight;
   };
 
-  formEl.addEventListener('submit', function(e) {
+  document.getElementById('chat-form').addEventListener('submit', function(e) {
     e.preventDefault();
-    const message = inputEl.value.trim();
-    if (!message) return;
-    chatSocket.send(JSON.stringify({ message }));
-    inputEl.value = '';
-  });
-
-  window.addEventListener('load', () => {
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    chatSocket.send(JSON.stringify({ message: text }));
+    input.value = '';
   });
 })();
 </script>
