@@ -1583,3 +1583,77 @@ empty-state
   color: #999;
   font-size: 0.85rem;
 }
+
+/* freelancers.html */
+
+.freelancers-list{
+  display: flex;
+  margin: 1rem 0;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.freelancer-card {
+  background: #252D2E;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.freelancer-card:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+  transform: translateY(-2px);
+}
+.order-item__link{
+  text-decoration: none;
+  color: #3B82F6;
+
+}
+.freelancer-card__name {
+  font-size: 1.25rem;
+  color: #3B82F6;
+  margin: 0 0 12px;
+}
+
+.order-item__link:hover {
+  text-decoration: underline;
+  color: #4FA3FF; 
+}
+
+.freelancer-card__snippet {
+  flex-grow: 1;
+  color: #F3F4F6;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.order-item__meta,
+.order-item__price,
+.order-item__date {
+  font-size: 0.875rem;
+  color: #A1A1AA;
+  margin-bottom: 8px;
+}
+.order-item__meta span,
+.order-item__price span {
+  color: #E5E7EB;
+  font-weight: 500;
+}
+.order-item__meta strong,
+.order-item__price strong {
+  color: #F3F4F6;
+}
+.order-item__date {
+  margin-top: auto; 
+  font-size: 0.8rem;
+  color: #6B7280;
+}
+
+.orders__empty {
+  text-align: center;
+  color: #6B7280;
+  font-size: 1rem;
+}

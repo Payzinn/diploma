@@ -101,7 +101,7 @@ class Order(models.Model):
         "Статус",
         max_length=20,
         choices=STATUS_CHOICES,
-        default='Открыт'
+        default='Open'
     )
     reason_of_cancel = models.TextField(null=True, blank=True)
     client = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Заказчик")
