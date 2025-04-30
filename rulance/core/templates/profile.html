@@ -240,27 +240,50 @@
             <p class="empty-state">Нет заказов в работе.</p>
           {% endif %}
 
-        {% elif current_tab == 'completed' %}
-          {% if completed %}
-            <ul class="responses-list">
-              {% for resp in completed %}
-                <li class="response-item">
-                  <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
-                      {{ resp.order.title }}
-                    </a>
-                  </p>
-                  <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
-                  <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
-                  <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
-                </li>
-              {% endfor %}
-            </ul>
+          {% elif current_tab == 'completed' %}
+          {% if profile_user.role == 'Client' %}
+            {# --- Клиент: completed содержит Order --- #}
+            {% if completed %}
+              <ul class="orders-list">
+                {% for order in completed %}
+                  <li class="order-item">
+                    <h3 class="order-item__title">
+                      <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+                        {{ order.title }}
+                      </a>
+                    </h3>
+                    <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
+                    <div class="order-item__date">
+                      Завершён: {{ order.updated_at|date:"d.m.Y H:i" }}
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-state">Нет завершённых заказов.</p>
+            {% endif %}
           {% else %}
-            <p class="empty-state">Нет завершённых заказов.</p>
+            {# --- Фрилансер: completed содержит Response --- #}
+            {% if completed %}
+              <ul class="responses-list">
+                {% for resp in completed %}
+                  <li class="response-item">
+                    <p><strong>Заказ:</strong>
+                      <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
+                        {{ resp.order.title }}
+                      </a>
+                    </p>
+                    <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
+                    <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-state">Нет завершённых заказов.</p>
+            {% endif %}
           {% endif %}
 
-        {% elif current_tab == 'cancelled' %}
+          {% elif current_tab == 'cancelled' %}
           {% if cancelled %}
             <ul class="orders-list">
               {% for order in cancelled %}
@@ -299,7 +322,7 @@
             <p class="empty-state">Нет отменённых заказов.</p>
           {% endif %}
         {% endif %}
-      </div>
+          </div>
     </section>
   {% endif %}
 {% endblock %}

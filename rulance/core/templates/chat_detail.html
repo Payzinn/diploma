@@ -86,8 +86,9 @@
   {% endif %}
 </section>
 
-<script>
-  // <![CDATA[
+<script type="module">
+  import WebSocketManager from '{% static 'core/js/websocket.js' %}';
+
   (function() {
     const chatWindow = document.getElementById('chat-window');
     document.addEventListener('DOMContentLoaded', () => {
@@ -101,113 +102,116 @@
     const CURRENT_USER_ID = {{ user.pk|default:0 }};
     const FREELANCER_ID = {{ chat.freelancer.pk|default:0 }};
     const chatId = "{{ chat.pk }}";
-    const wsScheme = location.protocol === 'https:' ? 'wss' : 'ws';
-    const socket = new WebSocket(`${wsScheme}://${location.host}/ws/chat/${chatId}/`);
+    const wsUrl = `/ws/chat/${chatId}/`;
+    const groupName = `chat_${chatId}`;
 
-    socket.onopen = () => console.log('[chat] WS connected');
-    socket.onerror = e => console.error('[chat] WS error', e);
-    socket.onclose = e => console.warn('[chat] WS closed', e);
-
-    socket.onmessage = e => {
-      console.log('Получено сообщение WebSocket:', e.data);
-      const data = JSON.parse(e.data);
-      console.log('Разобранные данные:', data);
+    // Регистрация обработчика сообщений для чата
+    WebSocketManager.registerHandler(groupName, (data) => {
       if (!data || !data.date || !data.message) {
-          console.error('[chat] Некорректные данные сообщения', data);
-          return;
+        console.error('[chat] Некорректные данные сообщения', data);
+        return;
       }
-  
-      if (data.date !== lastDate) {
-          const sep = document.createElement('div');
-          sep.className = 'chat__date-separator';
-          sep.textContent = data.date_readable || new Date(data.date).toLocaleDateString('ru-RU');
-          chatWindow.appendChild(sep);
-          lastDate = data.date;
-      }
-  
-      function escapeHTML(str) {
-          const div = document.createElement('div');
-          div.textContent = str;
-          return div.innerHTML;
-      }
-  
-      if (data.is_system) {
-          const sysEl = document.createElement('div');
-          sysEl.className = 'chat__message chat__message--system';
-          sysEl.dataset.date = data.date;
-          let inner = `<div class="chat__body chat__body--system"><p>${escapeHTML(data.message)}</p>`;
-  
-          if ((data.message_type === 'cancel_request' || data.message_type === 'complete_request') &&
-              CURRENT_USER_ID === FREELANCER_ID &&
-              !data.extra_data?.response) {
-              const action = data.message_type === 'cancel_request' ? 'cancel_response' : 'complete_response';
-              inner += `
-                  <div class="chat__system-buttons">
-                      <button data-action="${action}" data-response="yes" class="button-small">Согласен</button>
-                      <button data-action="${action}" data-response="no" class="button-small button-small--danger">Не согласен</button>
-                  </div>`;
-          }
-  
-          inner += '</div>';
-          sysEl.innerHTML = inner;
-          chatWindow.appendChild(sysEl);
-          console.log('Добавлено системное сообщение в DOM:', sysEl.outerHTML);
-  
-          // Скрыть кнопки в предыдущем сообщении после ответа
-          if (data.message_type === 'cancel_response' || data.message_type === 'complete_response') {
-              const lastRequest = chatWindow.querySelector(
-                  '.chat__message--system .chat__system-buttons'
-              );
-              if (lastRequest) {
-                  lastRequest.remove();
-                  console.log('Кнопки удалены для предыдущего сообщения');
-              }
-              // Если чат завершён, скрыть форму
-              if (data.extra_data?.response === 'yes') {
-                  const form = document.getElementById('chat-form');
-                  if (form) {
-                      form.outerHTML = '<p class="chat__form">Чат завершён, отправка сообщений невозможна.</p>';
-                      console.log('Форма отправки сообщений скрыта');
-                  }
-              }
-          }
-      } else {
-          const msgEl = document.createElement('div');
-          msgEl.className = `chat__message ${data.sender_id === CURRENT_USER_ID ? 'chat__message--self' : ''}`;
-          msgEl.dataset.date = data.date;
-  
-          let html = '';
-          if (data.sender_id !== CURRENT_USER_ID) {
-              html += `<img src="${escapeHTML(data.avatar_url)}" class="chat__avatar" alt="${escapeHTML(data.sender)}">`;
-          }
-          html += `
-              <div class="chat__body">
-                  <strong>
-                      <a href="/profile/${data.sender_id}/" class="profile__link">
-                          ${escapeHTML(data.sender_full_name)}
-                      </a>
-                  </strong>
-                  <p>${escapeHTML(data.message)}</p>
-                  <small class="chat__time">${escapeHTML(data.time)}</small>
-              </div>`;
-  
-          msgEl.innerHTML = html;
-          chatWindow.appendChild(msgEl);
-          console.log('Добавлено пользовательское сообщение в DOM:', msgEl.outerHTML);
-      }
-  
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
 
+      if (data.date !== lastDate) {
+        const sep = document.createElement('div');
+        sep.className = 'chat__date-separator';
+        sep.textContent = data.date_readable || new Date(data.date).toLocaleDateString('ru-RU');
+        chatWindow.appendChild(sep);
+        lastDate = data.date;
+      }
+
+      function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      if (data.is_system) {
+        const sysEl = document.createElement('div');
+        sysEl.className = 'chat__message chat__message--system';
+        sysEl.dataset.date = data.date;
+        let inner = `<div class="chat__body chat__body--system"><p>${escapeHTML(data.message)}</p>`;
+
+        if ((data.message_type === 'cancel_request' || data.message_type === 'complete_request') &&
+            CURRENT_USER_ID === FREELANCER_ID &&
+            !data.extra_data?.response) {
+          const action = data.message_type === 'cancel_request' ? 'cancel_response' : 'complete_response';
+          inner += `
+            <div class="chat__system-buttons">
+              <button data-action="${action}" data-response="yes" class="button-small">Согласен</button>
+              <button data-action="${action}" data-response="no" class="button-small button-small--danger">Не согласен</button>
+            </div>`;
+        }
+
+        inner += '</div>';
+        sysEl.innerHTML = inner;
+        chatWindow.appendChild(sysEl);
+        console.log('Добавлено системное сообщение в DOM:', sysEl.outerHTML);
+
+        if (data.message_type === 'cancel_response' || data.message_type === 'complete_response') {
+          const lastRequest = chatWindow.querySelector('.chat__message--system .chat__system-buttons');
+          if (lastRequest) {
+            lastRequest.remove();
+            console.log('Кнопки удалены для предыдущего сообщения');
+          }
+          if (data.extra_data?.response === 'yes') {
+            const form = document.getElementById('chat-form');
+            if (form) {
+              form.outerHTML = '<p class="chat__form">Чат завершён, отправка сообщений невозможна.</p>';
+              console.log('Форма отправки сообщений скрыта');
+            }
+          }
+        }
+      } else {
+        const msgEl = document.createElement('div');
+        msgEl.className = `chat__message ${data.sender_id === CURRENT_USER_ID ? 'chat__message--self' : ''}`;
+        msgEl.dataset.date = data.date;
+
+        let html = '';
+        if (data.sender_id !== CURRENT_USER_ID) {
+          html += `<img src="${escapeHTML(data.avatar_url)}" class="chat__avatar" alt="${escapeHTML(data.sender)}">`;
+        }
+        html += `
+          <div class="chat__body">
+            <strong>
+              <a href="/profile/${data.sender_id}/" class="profile__link">
+                ${escapeHTML(data.sender_full_name)}
+              </a>
+            </strong>
+            <p>${escapeHTML(data.message)}</p>
+            <small class="chat__time">${escapeHTML(data.time)}</small>
+          </div>`;
+
+        msgEl.innerHTML = html;
+        chatWindow.appendChild(msgEl);
+        console.log('Добавлено пользовательское сообщение в DOM:', msgEl.outerHTML);
+      }
+
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+
+    // Подключение к WebSocket
+    WebSocketManager.connect(
+      wsUrl,
+      () => console.log('[chat] WebSocket подключён'),
+      (e) => console.error('[chat] WebSocket ошибка:', e),
+      (e) => console.warn('[chat] WebSocket закрыт:', e)
+    );
+
+    // Привязка обработчика сообщений
+    WebSocketManager.attachMessageHandler(wsUrl, groupName);
+
+    // Обработка отправки сообщений
     document.getElementById('chat-form')?.addEventListener('submit', e => {
       e.preventDefault();
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
       if (!text) return;
-      socket.send(JSON.stringify({ action: 'message', message: text }));
+      WebSocketManager.send(wsUrl, { action: 'message', message: text });
       input.value = '';
     });
 
+    // Обработка действий (cancel_request, complete_request)
     document.querySelectorAll('.js-confirm-action').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
@@ -248,7 +252,7 @@
             submitBtn.onclick = () => {
               const reason = reasonInput.value.trim();
               if (reason) {
-                socket.send(JSON.stringify({ action, reason }));
+                WebSocketManager.send(wsUrl, { action, reason });
                 modal.classList.remove('modal--show');
               } else {
                 alert('Пожалуйста, укажите причину отмены.');
@@ -258,7 +262,7 @@
               modal.classList.remove('modal--show');
             };
           } else {
-            socket.send(JSON.stringify({ action }));
+            WebSocketManager.send(wsUrl, { action });
             modal.classList.remove('modal--show');
           }
         };
@@ -278,10 +282,9 @@
       if (!btn) return;
       const action = btn.dataset.action;
       const response = btn.dataset.response;
-      socket.send(JSON.stringify({ action, response }));
+      WebSocketManager.send(wsUrl, { action, response });
       btn.parentNode.remove();
     });
   })();
-  // ]]>
 </script>
 {% endblock %}

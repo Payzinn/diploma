@@ -1,14 +1,19 @@
+{# templates/portfolio_detail.html #}
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Моё портфолио{% endblock %}
+
+{% block title %}Портфолио – {{ profile_user.full_name|default:profile_user.username }}{% endblock %}
 
 {% block content %}
 <section class="container portfolio-detail">
   <h2 class="page_header portfolio-detail__title">
-    Портфолио {{ request.user.full_name }}
+    <a href="{% url 'profile_detail' profile_user.pk %}" class="profile__link">
+      {{ profile_user.full_name|default:profile_user.username }}
+    </a>
+    – портфолио
   </h2>
 
-  <!-- Группа: Категория -->
+  <!-- Категория -->
   <div class="portfolio-detail__group">
     <p class="portfolio-detail__label"><strong>Категория:</strong></p>
     <p class="portfolio-detail__value">
@@ -16,7 +21,7 @@
     </p>
   </div>
 
-  <!-- Группа: Опыт работы -->
+  <!-- Опыт -->
   <div class="portfolio-detail__group">
     <p class="portfolio-detail__label"><strong>Опыт работы:</strong></p>
     <p class="portfolio-detail__value">
@@ -28,7 +33,7 @@
     </p>
   </div>
 
-  <!-- Группа: Ставки -->
+  <!-- Ставки -->
   <div class="portfolio-detail__group">
     <p class="portfolio-detail__label"><strong>Ставка в час:</strong></p>
     <p class="portfolio-detail__value">{{ portfolio.hourly_rate }} ₽</p>
@@ -36,17 +41,16 @@
     <p class="portfolio-detail__value">{{ portfolio.monthly_rate }} ₽</p>
   </div>
 
-  <!-- Группа: Описание -->
+  <!-- Описание -->
   <div class="portfolio-detail__group">
     <p class="portfolio-detail__label"><strong>Описание опыта:</strong></p>
     <p class="portfolio-detail__value">{{ portfolio.description }}</p>
   </div>
 
-  <div class="portfolio-detail__actions">
-    <a href="{% url 'portfolio_update' %}"
-       class="portfolio-detail__btn">
-      Редактировать портфолио
-    </a>
-  </div>
+  {% if is_own %}
+    <div class="portfolio-detail__actions">
+      <a href="{% url 'portfolio_update' %}" class="portfolio-detail__btn">Редактировать портфолио</a>
+    </div>
+  {% endif %}
 </section>
 {% endblock %}

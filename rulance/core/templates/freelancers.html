@@ -1,0 +1,46 @@
+{# templates/freelancers.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Фрилансеры{% endblock %}
+
+{% block content %}
+<section class="container freelancers">
+  <h2 class="page_header">Фрилансеры</h2>
+
+  {% if freelancers %}
+    <ul class="freelancers-list">
+      {% for user in freelancers %}
+      <li class="freelancer-card">
+        <h3 class="freelancer-card__name">
+          <a href="{% url 'portfolio_detail' user.pk %}" class="profile__link">
+            {{ user.full_name|default:user.username }}
+          </a>
+        </h3>
+
+        <p class="freelancer-card__snippet">
+          {{ user.portfolio.description|truncatewords:20 }}
+        </p>
+
+        <div class="freelancer-card__meta">
+          <span class="freelancer-card__label">Сфера:</span>
+          <strong>
+            {{ user.portfolio.sphere.name }} →
+            {{ user.portfolio.sphere_type.name }}
+          </strong>
+        </div>
+
+        <div class="freelancer-card__rates">
+          <span class="freelancer-card__label">Ставка в час:</span>
+          <strong>{{ user.portfolio.hourly_rate }} ₽</strong>
+          <span class="freelancer-card__label ml-4">Ставка в месяц:</span>
+          <strong>{{ user.portfolio.monthly_rate }} ₽</strong>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">Пока нет фрилансеров с портфолио.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -13,6 +13,17 @@ def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
     return render(request, 'index.html', {'spheres': spheres})
 
+@login_required
+def freelancers(request):
+    spheres       = Sphere.objects.all()
+    sphere_types  = SphereType.objects.all()
+    qs = User.objects.filter(role='Freelancer', portfolio__isnull=False).select_related('portfolio')
+    return render(request, 'freelancers.html', {
+        'freelancers': qs,
+        'spheres': spheres,
+        'sphere_types': sphere_types,
+        })
+
 def orders(request):
     spheres       = Sphere.objects.all()
     sphere_types  = SphereType.objects.all()
@@ -128,58 +139,48 @@ def profile(request, pk=None):
 
     if is_own:
         if profile_user.role == 'Client':
-            tab_label = 'Отклики исполнителей'
+            tab_label = 'Отклики исполнителей'  # Добавляем tab_label
             pending = Response.objects.filter(
                 order__client=profile_user,
                 status='Pending'
-            ).select_related('order', 'user')
+            ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
             in_work = Response.objects.filter(
                 order__client=profile_user,
                 status='Accepted',
                 order__status='InWork'
-            ).select_related('order', 'user')
+            ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
             completed = Order.objects.filter(
                 client=profile_user,
                 status='Completed'
-            ).annotate(
-                responses_count=Count(
-                    'responses',
-                    filter=Q(responses__status='Pending')
-                )
-            ).select_related('sphere', 'sphere_type')
+            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
             cancelled = Order.objects.filter(
                 client=profile_user,
                 status='Cancelled'
-            ).annotate(
-                responses_count=Count(
-                    'responses',
-                    filter=Q(responses__status='Pending')
-                )
-            ).select_related('sphere', 'sphere_type')
+            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
         else:
-            tab_label = 'Мои отклики'
+            tab_label = 'Мои отклики'  # Добавляем tab_label
             pending = Response.objects.filter(
                 user=profile_user,
                 status='Pending'
-            ).select_related('order', 'order__client')
+            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             in_work = Response.objects.filter(
                 user=profile_user,
                 status='Accepted',
                 order__status='InWork'
-            ).select_related('order', 'order__client')
+            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             completed = Response.objects.filter(
                 user=profile_user,
                 status='Accepted',
                 order__status='Completed'
-            ).select_related('order', 'order__client')
+            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             cancelled = Order.objects.filter(
                 responses__user=profile_user,
                 responses__status='Accepted',
                 status='Cancelled'
-            ).select_related('sphere', 'sphere_type')
+            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
 
         resp_list = list(in_work) + list(completed)
-        order_ids = [r.order_id for r in resp_list]
+        order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
 
         if profile_user.role == 'Client':
             chats = Chat.objects.filter(
@@ -188,7 +189,10 @@ def profile(request, pk=None):
             )
             chat_map = {(c.order_id, c.freelancer_id): c for c in chats}
             for r in resp_list:
-                r.chat = chat_map.get((r.order_id, r.user_id))
+                if isinstance(r, Response):
+                    r.chat = chat_map.get((r.order_id, r.user_id))
+                else:
+                    r.chat = None
         else:
             chats = Chat.objects.filter(
                 freelancer=profile_user,
@@ -196,7 +200,7 @@ def profile(request, pk=None):
             )
             chat_map = {c.order_id: c for c in chats}
             for r in resp_list:
-                r.chat = chat_map.get(r.order_id)
+                r.chat = chat_map.get(r.order_id if isinstance(r, Response) else r.pk)
 
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
@@ -248,12 +252,21 @@ def portfolio_create(request):
     })
 
 @login_required
-def portfolio_detail(request):
-    """
-    Просмотр своего портфолио.
-    """
-    p = get_object_or_404(Portfolio, user=request.user)
-    return render(request, 'portfolio_detail.html', {'portfolio': p})
+def portfolio_detail(request, pk=None):
+    if pk:
+        profile_user = get_object_or_404(User, pk=pk, role='Freelancer')
+        is_own = False
+    else:
+        profile_user = request.user
+        is_own = True
+
+    portfolio = profile_user.portfolio  
+
+    return render(request, 'portfolio_detail.html', {
+        'portfolio': portfolio,
+        'profile_user': profile_user,
+        'is_own': is_own,
+    })
 
 @login_required
 def portfolio_update(request):

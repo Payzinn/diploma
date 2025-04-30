@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', views.index, name='index'),
     path('orders/', views.orders, name='orders'),
+    path('freelancers/', views.freelancers, name='freelancers'),
     path('register/', views.register, name='register'),
     path('login/', LoginView.as_view(template_name='login.html', success_url='/profile/'), name='login'),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
@@ -13,6 +14,7 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('profile/<int:pk>/', views.profile, name='profile_detail'),
     path('portfolio/create/', views.portfolio_create, name='portfolio_create'),
+    path('portfolio/<int:pk>/', views.portfolio_detail, name='portfolio_detail'),
     path('portfolio/', views.portfolio_detail, name='portfolio_detail'),
     path('portfolio/edit/', views.portfolio_update, name='portfolio_update'),
     path('make_order/', views.make_order, name='make_order'),
