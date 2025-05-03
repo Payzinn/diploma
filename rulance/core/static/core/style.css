@@ -128,15 +128,20 @@ body {
     background: #4A5568;
 }
 
+.notification-item {
+  list-style: none;
+}
+
 .text-right {
     margin-left: auto;
+    display: flex;
+    align-items: center;
 }
 
 .hidden {
     display: none;
 }
 
-/* base styles */
 .container {
     max-width: 1000px;
     margin: 0 auto;
@@ -144,9 +149,8 @@ body {
 
 /* === INDEX PAGE === */
 
-/* Hero-блок */
 .index-hero {
-  background: #1C2526;            /* тот же фон, что и у страницы */
+  background: #1C2526;           
   text-align: center;
   padding: 80px 20px;
 }
@@ -185,7 +189,6 @@ body {
   box-shadow: 0 6px 16px rgba(0,0,0,0.4);
 }
 
-/* Секция категорий */
 .categories {
   padding: 40px 20px;
 }
@@ -196,7 +199,6 @@ body {
   gap: 20px;
 }
 
-/* Карточка одной сферы */
 .category-card {
   background-color: #2D3748;
   padding: 24px;
@@ -1059,6 +1061,11 @@ body {
 .notification.error {
     background-color: #f44336;
 }
+
+.notification-empty{
+  list-style: none;
+}
+
 
 /* ORDERS */
 .orders {

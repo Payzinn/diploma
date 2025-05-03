@@ -1,8 +1,10 @@
 from .models import Notification
 
-def unread_notifications(request):
-    if request.user.is_authenticated:
-        return {
-            'unread_count': Notification.objects.filter(user=request.user, is_read=False).count()
-        }
-    return {}
+def notifications(request):
+    if not request.user.is_authenticated:
+        return {}
+    qs = request.user.notifications.all()
+    return {
+        'notifications': qs,
+        'unread_count': qs.filter(is_read=False).count(),
+    }

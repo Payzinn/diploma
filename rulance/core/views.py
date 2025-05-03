@@ -8,7 +8,11 @@ from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Respo
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
+from django.views.decorators.http import require_POST
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
     return render(request, 'index.html', {'spheres': spheres})
@@ -372,7 +376,27 @@ def order_respond(request, pk):
             resp.order = order
             resp.user = request.user
             resp.save()
+
+            verb = f'Новый отклик от «{request.user.full_name}» на ваш заказ «{order.title}»'
+            link = reverse('response_detail', args=[resp.pk])
+            note = Notification.objects.create(user=order.client, verb=verb, link=link)
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{order.client.id}',
+                {
+                    'type': 'notif_message',
+                    'data': {
+                        'id': note.id,
+                        'verb': note.verb,
+                        'link': note.get_absolute_url(),
+                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                    }
+                }
+            )
+
             return redirect(reverse('order_detail', args=[pk]) + '?responded=1')
+
     return redirect('order_detail', pk=pk)
 
 @login_required
@@ -397,6 +421,7 @@ def response_accept(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
     resp.status = 'Accepted'
     resp.save()
+
     order = resp.order
     order.status = 'InWork'
     order.save()
@@ -407,10 +432,22 @@ def response_accept(request, pk):
         client=request.user
     )
 
-    Notification.objects.create(
-        user=resp.user,
-        verb=f'Ваш отклик на «{order.title}» принят.',
-        link=reverse('chat_detail', args=[chat.pk])
+    verb = f'Ваш отклик на «{order.title}» принят.'
+    link = reverse('chat_detail', args=[chat.pk])
+    note = Notification.objects.create(user=resp.user, verb=verb, link=link)
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'notifications_{resp.user.id}',
+        {
+            'type': 'notif_message',
+            'data': {
+                'id': note.id,
+                'verb': note.verb,
+                'link': note.get_absolute_url(),
+                'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+            }
+        }
     )
 
     return redirect('profile')
@@ -420,11 +457,25 @@ def response_reject(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
     resp.status = 'Rejected'
     resp.save()
-    Notification.objects.create(
-        user=resp.user,
-        verb=f'Ваш отклик на «{resp.order.title}» отклонён.',
-        link=reverse('response_detail', args=[resp.pk])
+
+    verb = f'Ваш отклик на «{resp.order.title}» отклонён.'
+    link = reverse('response_detail', args=[resp.pk])
+    note = Notification.objects.create(user=resp.user, verb=verb, link=link)
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'notifications_{resp.user.id}',
+        {
+            'type': 'notif_message',
+            'data': {
+                'id': note.id,
+                'verb': note.verb,
+                'link': note.get_absolute_url(),
+                'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+            }
+        }
     )
+
     return redirect('profile')
 
 @login_required
@@ -447,6 +498,25 @@ def chat_detail(request, chat_id):
             msg.chat = chat
             msg.sender = request.user
             msg.save()
+            other = chat.freelancer if request.user == chat.client else chat.client
+            verb = f'Новое сообщение в чате по заказу «{chat.order.title}»'
+            link = reverse('chat_detail', args=[chat.pk])
+            note = Notification.objects.create(user=other, verb=verb, link=link)
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{other.id}',
+                {
+                    'type': 'notif_message',
+                    'data': {
+                        'id': note.id,
+                        'verb': note.verb,
+                        'link': note.get_absolute_url(),
+                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                    }
+                }
+            )
+
             return redirect('chat_detail', chat_id=chat.pk)
     else:
         form = MessageForm()
@@ -476,3 +546,14 @@ def order_cancel(request, pk):
     else:
         reason = request.POST.get('reason', '')
         order.status = 'Cancelled'
+
+@require_POST
+@login_required
+def mark_notification_read(request, pk):
+    try:
+        note = request.user.notifications.get(pk=pk)
+    except Notification.DoesNotExist:
+        raise Http404
+    note.is_read = True
+    note.save()
+    return HttpResponse(status=204)

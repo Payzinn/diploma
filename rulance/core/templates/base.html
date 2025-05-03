@@ -18,32 +18,47 @@
             <a href="/freelancers/" class="header__link {% if request.path == '/freelancers/' %}active{% endif %}">Специалисты</a>
         </nav>
         <div class="text-right">
-            {% if user.is_authenticated %}
-                <div class="dropdown">
-                    
-                    <div class="dropdown__toggle">
-                        {% if user.is_authenticated %}
-                        <a href="{% url 'notifications_list' %}" class="nav-notif">
-                          🔔
-                          {% if unread_count %}
-                            <span class="nav-notif__badge">{{ unread_count }}</span>
-                          {% endif %}
+                {% if user.is_authenticated %}
+                <div class="dropdown dropdown--notif">
+                <button id="notif-toggle" class="dropdown__toggle">
+                    🔔
+                    {% if unread_count %}
+                    <span id="notif-badge" class="nav-notif__badge">{{ unread_count }}</span>
+                    {% else %}
+                    <span id="notif-badge" class="nav-notif__badge" style="display:none;"></span>
+                    {% endif %}
+                </button>
+                <div id="notif-dropdown" class="dropdown__content">
+                    <ul id="notif-list" class="notifications-list">
+                    {% for note in notifications %}
+                        <li class="notification-item {% if not note.is_read %}notification-item--new{% endif %}" data-id="{{ note.id }}">
+                        <a href="{{ note.get_absolute_url }}" class="notification-link">
+                            {{ note.verb }}
+                            <small class="notification-time">{{ note.created_at|date:"d.m.Y H:i" }}</small>
                         </a>
-                      {% endif %}
-                        <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" 
-                             class="dropdown__avatar">
-                        <span>{{ user.username }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="notification-empty">У вас пока нет уведомлений.</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                </div>
+                <div class="dropdown">
+                    <div class="dropdown__toggle">
+                    <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}/static/default_avatar.png{% endif %}"
+                        class="dropdown__avatar">
+                    <span>{{ user.username }}</span>
                     </div>
                     <div class="dropdown__content">
-                        <a href="{% url 'switch_role' %}" class="dropdown__item">
-                            Переключиться на {% if user.role == 'Freelancer' %}Заказчика{% else %}Фрилансера{% endif %}
-                        </a>
-                        <div class="dropdown__divider"></div>
-                        <a href="{% url 'profile' %}" class="dropdown__item">Профиль</a>
-                        <form method="post" action="{% url 'logout' %}" class="dropdown__form">
-                            {% csrf_token %}
-                            <button type="submit" class="dropdown__logout">Выйти</button>
-                        </form>
+                    <a href="{% url 'switch_role' %}" class="dropdown__item">
+                        Переключиться на {% if user.role == 'Freelancer' %}Заказчика{% else %}Фрилансера{% endif %}
+                    </a>
+                    <div class="dropdown__divider"></div>
+                    <a href="{% url 'profile' %}" class="dropdown__item">Профиль</a>
+                    <form method="post" action="{% url 'logout' %}" class="dropdown__form">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown__logout">Выйти</button>
+                    </form>
                     </div>
                 </div>
             {% else %}
@@ -81,7 +96,7 @@
 <script src="{% static 'core/js/confirm.js' %}" defer></script>
 <script src="{% static 'core/js/filter.js' %}" defer></script>
 <script src="{% static 'core/js/make_order.js' %}" defer></script>
-<script src="{% static 'core/js/notification.js' %}" defer></script>
+<script type="module" src="{% static 'core/js/notification.js' %}"></script>
 <script src="{% static 'core/js/dropzone_form.js' %}" defer></script>
 <script src="{% static 'core/js/profile.js' %}" defer></script>
 <script src="{% static 'core/js/modal-spheres.js' %}" defer></script>

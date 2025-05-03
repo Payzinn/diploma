@@ -27,4 +27,5 @@ urlpatterns = [
     path('chat/<int:chat_id>/', views.chat_detail, name='chat_detail'),
     path('order/<int:pk>/complete/', views.order_complete, name='order_complete'),
     path('order/<int:pk>/cancel/',   views.order_cancel,   name='order_cancel'),
+    path('notifications/mark_read/<int:pk>/', views.mark_notification_read, name='mark_notification_read'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
