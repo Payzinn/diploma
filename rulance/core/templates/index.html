@@ -1,32 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="text-align: center; padding: 40px 0;">
-    <h1 style="color: #FFFFFF; font-size: 48px; font-weight: bold;">
-        Передайте свои задачи фрилансеру и освободите время для важного
-    </h1>
-    <p style="color: #FFFFFF; font-size: 20px; margin: 20px 0;">
-        Разработчики, дизайнеры и другие IT-специалисты готовы помочь вам прямо сейчас
-    </p>
-    <a href="{% url 'orders' %}" 
-       style="background-color: #3B82F6; color: #FFFFFF; padding: 15px 30px; border-radius: 5px; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-        Найти специалиста
-    </a>
+<div class="index-hero">
+  <h1 class="index-hero__title">
+    Передайте свои задачи фрилансеру и освободите время для важного
+  </h1>
+  <p class="index-hero__subtitle">
+    Разработчики, дизайнеры и другие IT-специалисты готовы помочь вам прямо сейчас
+  </p>
+  <a href="{% url 'orders' %}" class="index-hero__cta">
+    Найти специалиста
+  </a>
 </div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding: 20px;">
+
+<section class="categories">
+  <div class="categories__grid">
     {% for sphere in spheres %}
-        <a href="{% url 'orders' %}?category={{ sphere.id }}" style="text-decoration: none;">
-            <div style="background-color: #2D3748; padding: 20px; border-radius: 10px; color: #FFFFFF; transition: transform 0.2s;">
-                <h3 style="font-size: 24px; font-weight: bold;">{{ sphere.name }}</h3>
-                <ul style="list-style: none; padding: 0;">
-                    {% for subtype in sphere.spheretype_set.all|slice:":3" %}
-                        <li>{{ subtype.name }}</li>
-                    {% endfor %}
-                    {% if sphere.spheretype_set.count > 3 %}
-                        <li style="color: #A9A9A9;">и многое другое</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </a>
+      <a href="{% url 'orders' %}?category={{ sphere.id }}" class="category-card">
+        <h3 class="category-card__title">{{ sphere.name }}</h3>
+        <ul class="category-card__list">
+          {% for subtype in sphere.spheretype_set.all|slice:":3" %}
+            <li class="category-card__item">{{ subtype.name }}</li>
+          {% endfor %}
+          {% if sphere.spheretype_set.count > 3 %}
+            <li class="category-card__item category-card__item--more">и многое другое</li>
+          {% endif %}
+        </ul>
+      </a>
     {% endfor %}
-</div>
+  </div>
+</section>
 {% endblock %}

@@ -1,42 +1,71 @@
 {% extends 'base.html' %}
-{% block title %} Rulance Регистрация {% endblock %}
+
+{% block title %}Rulance · Регистрация{% endblock %}
+
 {% block content %}
-<div class="auth-container">
+<section class="auth-container">
+  <div class="auth-card">
     <h2 class="auth-title">Регистрация</h2>
     <form method="post" class="auth-form">
-        {% csrf_token %}
-        
-        <div class="auth-form__field">
-            <label class="auth-form__label">Роль</label>
-            <select name="role" class="auth-form__select">
-                {% for value, label in form.role.field.choices %}
-                    <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-            </select>
-            {% if form.role.errors %}
-                <p class="error-message">{{ form.role.errors.0 }}</p>
-            {% endif %}
-        </div>
+      {% csrf_token %}
 
-        {% for field in form %}
-            {% if field.name != 'role' %}
-                <div class="auth-form__field">
-                    <input type="{{ field.field.widget.input_type }}" 
-                           name="{{ field.name }}" 
-                           placeholder="{{ field.label }}" 
-                           class="auth-form__input"
-                           required>
-                    {% if field.errors %}
-                        <p class="error-message">{{ field.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            {% endif %}
+      {% for field in form %}
+        {% if field.name != 'role' %}
+          <input
+            type="{{ field.field.widget.input_type }}"
+            name="{{ field.html_name }}"
+            placeholder="{{ field.label }}"
+            class="auth-form__input"
+            value="{{ field.value|default_if_none:'' }}"
+            required
+          >
+          {% if field.errors %}
+            <p class="error-message">{{ field.errors.0 }}</p>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+
+      <div class="auth-form__roles">
+        {% for value, label in form.role.field.choices %}
+          <label class="auth-form__role-btn{% if form.role.value|stringformat:'s' == value|stringformat:'s' %} active{% endif %}">
+            <input
+              type="radio"
+              name="{{ form.role.html_name }}"
+              value="{{ value }}"
+              {% if form.role.value|stringformat:'s' == value|stringformat:'s' %}checked{% endif %}
+            >
+            {{ label }}
+          </label>
         {% endfor %}
+      </div>
+      {% if form.role.errors %}
+        <p class="error-message">{{ form.role.errors.0 }}</p>
+      {% endif %}
 
-        <button type="submit" class="auth-button">Зарегистрироваться</button>
+      <button type="submit" class="auth-button">
+        Зарегистрироваться
+      </button>
     </form>
-    <p class="text-center">
-        <a href="{% url 'login' %}" class="link-secondary">Уже есть аккаунт? Войти</a>
+
+    <p class="auth-footer">
+      <a href="{% url 'login' %}" class="link-secondary">
+        Уже есть аккаунт? Войти
+      </a>
     </p>
-</div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const roleButtons = document.querySelectorAll('.auth-form__role-btn');
+  roleButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      roleButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const input = btn.querySelector('input[type="radio"]');
+      if (input) input.checked = true;
+    });
+  });
+});
+</script>
 {% endblock %}

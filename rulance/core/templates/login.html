@@ -1,21 +1,37 @@
 {% extends 'base.html' %}
-{% block title %}Rulance Авторизация{% endblock %}
+{% block title %}Rulance · Авторизация{% endblock %}
+
 {% block content %}
-<div style="max-width: 400px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #FFFFFF; font-size: 36px; font-weight: bold; text-align: center;">Вход</h2>
-    <form method="post" style="display: flex; flex-direction: column; gap: 15px;">
-        {% csrf_token %}
-        <input type="text" name="username" placeholder="Логин" 
-               style="width: 100%; padding: 12px; border-radius: 8px; background: #FFFFFF; border: none;" required>
-        <input type="password" name="password" placeholder="Пароль" 
-               style="width: 100%; padding: 12px; border-radius: 8px; background: #FFFFFF; border: none;" required>
-        <button type="submit" 
-                style="background: #4A90E2; color: white; padding: 12px; border-radius: 8px; cursor: pointer;">
-            Войти
-        </button>
+<section class="login-page">
+  <div class="login-page__card">
+    <h2 class="login-page__title">Вход</h2>
+
+    <form method="post" class="login-page__form">
+      {% csrf_token %}
+      <input
+        type="text"
+        name="username"
+        placeholder="Логин"
+        class="login-page__input"
+        required
+      >
+      <input
+        type="password"
+        name="password"
+        placeholder="Пароль"
+        class="login-page__input"
+        required
+      >
+      <button type="submit" class="login-page__btn">
+        Войти
+      </button>
     </form>
-    <p style="text-align: center; margin-top: 15px;">
-        <a href="{% url 'register' %}" style="color: #4A90E2;">Нет аккаунта? Зарегистрироваться</a>
+
+    <p class="login-page__footer">
+      <a href="{% url 'register' %}" class="login-page__link">
+        Нет аккаунта? Зарегистрироваться
+      </a>
     </p>
-</div>
+  </div>
+</section>
 {% endblock %}

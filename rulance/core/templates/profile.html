@@ -45,7 +45,7 @@
           <a href="{% url 'make_order' %}" class="profile__link">Разместить заказ</a>
         {% endif %}
         {% if profile_user.role == 'Freelancer' and has_portfolio %}
-          <a href="{% url 'portfolio_detail' %}" class="profile__link">Портфолио</a>
+          <a href="{% url 'portfolio_detail' profile_user.pk %}" class="profile__link">Портфолио</a>
         {% endif %}
         {% if is_own and profile_user.role == 'Freelancer' and not has_portfolio %}
           <a href="{% url 'portfolio_create' %}" class="profile__btn">Создать портфолио</a>
@@ -204,7 +204,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center">
+            <p class="empty-state text-center text-center">
               {% if profile_user.role == 'Client' %}
                 На ваши заказы ещё никто не откликнулся.
               {% else %}
@@ -237,12 +237,11 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state">Нет заказов в работе.</p>
+            <p class="empty-state text-center">Нет заказов в работе.</p>
           {% endif %}
 
           {% elif current_tab == 'completed' %}
           {% if profile_user.role == 'Client' %}
-            {# --- Клиент: completed содержит Order --- #}
             {% if completed %}
               <ul class="orders-list">
                 {% for order in completed %}
@@ -260,10 +259,9 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="empty-state">Нет завершённых заказов.</p>
+              <p class="empty-state text-center">Нет завершённых заказов.</p>
             {% endif %}
           {% else %}
-            {# --- Фрилансер: completed содержит Response --- #}
             {% if completed %}
               <ul class="responses-list">
                 {% for resp in completed %}
@@ -279,7 +277,7 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="empty-state">Нет завершённых заказов.</p>
+              <p class="empty-state text-center">Нет завершённых заказов.</p>
             {% endif %}
           {% endif %}
 
@@ -319,7 +317,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state">Нет отменённых заказов.</p>
+            <p class="empty-state text-center ">Нет отменённых заказов.</p>
           {% endif %}
         {% endif %}
           </div>

@@ -1,4 +1,3 @@
-// static/js/websocket.js
 class WebSocketManager {
     constructor() {
         this.connections = new Map();

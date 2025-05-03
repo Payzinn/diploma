@@ -8,21 +8,23 @@ from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Respo
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
-
+from django.http import JsonResponse
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
     return render(request, 'index.html', {'spheres': spheres})
 
-@login_required
 def freelancers(request):
-    spheres       = Sphere.objects.all()
-    sphere_types  = SphereType.objects.all()
-    qs = User.objects.filter(role='Freelancer', portfolio__isnull=False).select_related('portfolio')
+    spheres      = Sphere.objects.all()
+    sphere_types = SphereType.objects.all()
+    qs = User.objects.filter(
+        role='Freelancer',
+        portfolio__isnull=False
+    ).select_related('portfolio')
     return render(request, 'freelancers.html', {
         'freelancers': qs,
         'spheres': spheres,
         'sphere_types': sphere_types,
-        })
+    })
 
 def orders(request):
     spheres       = Sphere.objects.all()
@@ -98,12 +100,27 @@ def switch_role(request):
     u.save()
     return redirect('index')
 
-@login_required
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Count, Q
+
 def profile(request, pk=None):
-    profile_user = get_object_or_404(User, pk=pk) if pk else request.user
-    is_own = (profile_user == request.user)
+    if pk:
+        profile_user = get_object_or_404(User, pk=pk)
+    else:
+        profile_user = request.user
+
+    is_own = request.user.is_authenticated and (profile_user == request.user)
+
     has_portfolio = hasattr(profile_user, 'portfolio')
 
+    if request.method == 'POST' and is_own:
+        avatar_form = AvatarForm(request.POST, request.FILES, instance=request.user)
+        if avatar_form.is_valid():
+            avatar_form.save()
+            return JsonResponse({'success': True, 'avatar_url': request.user.avatar.url})
+        else:
+            return JsonResponse({'success': False, 'errors': avatar_form.errors}, status=400)
+        
     context = {
         'profile_user': profile_user,
         'is_own': is_own,
@@ -123,7 +140,7 @@ def profile(request, pk=None):
                  )
                  .select_related('sphere', 'sphere_type')
         )
-        if not is_own and request.user.role == 'Freelancer':
+        if request.user.is_authenticated and not is_own and request.user.role == 'Freelancer':
             my_resps = Response.objects.filter(
                 order__client=profile_user,
                 user=request.user
@@ -139,7 +156,7 @@ def profile(request, pk=None):
 
     if is_own:
         if profile_user.role == 'Client':
-            tab_label = 'Отклики исполнителей'  # Добавляем tab_label
+            tab_label = 'Отклики исполнителей'
             pending = Response.objects.filter(
                 order__client=profile_user,
                 status='Pending'
@@ -158,7 +175,7 @@ def profile(request, pk=None):
                 status='Cancelled'
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
         else:
-            tab_label = 'Мои отклики'  # Добавляем tab_label
+            tab_label = 'Мои отклики'
             pending = Response.objects.filter(
                 user=profile_user,
                 status='Pending'
@@ -218,6 +235,7 @@ def profile(request, pk=None):
 
     return render(request, 'profile.html', context)
 
+
 @login_required
 def response_reject(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
@@ -251,16 +269,14 @@ def portfolio_create(request):
         'is_update': False,
     })
 
-@login_required
-def portfolio_detail(request, pk=None):
-    if pk:
-        profile_user = get_object_or_404(User, pk=pk, role='Freelancer')
-        is_own = False
-    else:
-        profile_user = request.user
+def portfolio_detail(request, pk):
+    profile_user = get_object_or_404(User, pk=pk, role='Freelancer')
+    if request.user.is_authenticated and request.user.pk == profile_user.pk:
         is_own = True
+    else:
+        is_own = False
 
-    portfolio = profile_user.portfolio  
+    portfolio = profile_user.portfolio
 
     return render(request, 'portfolio_detail.html', {
         'portfolio': portfolio,
@@ -315,7 +331,6 @@ def make_order(request):
     })
 
 
-@login_required
 def order_detail(request, pk):
     order = get_object_or_404(
         Order.objects
@@ -324,14 +339,20 @@ def order_detail(request, pk):
         pk=pk
     )
 
-    has_portfolio = hasattr(request.user, 'portfolio')
-    has_responded = order.responses.filter(user=request.user).exists()
+    if request.user.is_authenticated:
+        has_portfolio = hasattr(request.user, 'portfolio')
+        has_responded = order.responses.filter(user=request.user).exists()
+        response_form = ResponseForm()
+    else:
+        has_portfolio = False
+        has_responded = False
+        response_form = None
 
     return render(request, 'order_detail.html', {
         'order': order,
         'has_portfolio': has_portfolio,
         'has_responded': has_responded,
-        'response_form': ResponseForm(),
+        'response_form': response_form,
     })
 
 @login_required

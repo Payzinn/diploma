@@ -78,7 +78,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "Фрилансер согласен" if resp == 'yes' else "Фрилансер не согласен"
                 ) + (" с отменой заказа." if typ == 'cancel' else " с завершением заказа.")
 
-                # Найти последнее сообщение cancel_request или complete_request
                 last_request_msg = await database_sync_to_async(Message.objects.filter)(
                     chat=chat,
                     is_system=True,
@@ -94,7 +93,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     await database_sync_to_async(last_request_msg.save)()
                     print(f"Обновлено сообщение {last_request_msg.id} с ответом: {resp}")
 
-                # Создать новое сообщение
                 system_msg = await database_sync_to_async(Message.objects.create)(
                     chat=chat,
                     sender=system_user,
@@ -102,10 +100,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     is_system=True,
                     extra_data={'type': action, 'response': resp}
                 )
-                # Отправить сообщение в группу
                 await self._send_system_message(system_msg)
 
-                # Изменить статус заказа и чата только после отправки сообщения
                 if resp == 'yes':
                     try:
                         order_pk = await self.get_chat_order_pk(self.chat_id)
@@ -114,7 +110,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             await self._mark_order_cancelled(order_pk, cancel_reason)
                         else:
                             await self._mark_order_completed(order_pk)
-                        # Деактивировать чат
                         await self._deactivate_chat(self.chat_id)
                         print(f"Чат {self.chat_id} деактивирован, заказ {order_pk} обновлён")
                     except Exception as e:
@@ -122,7 +117,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
 
             text = data.get('message', '')
-            # Проверить, активен ли чат
             is_chat_active = await database_sync_to_async(lambda: Chat.objects.get(pk=self.chat_id).is_active)()
             if not is_chat_active:
                 print(f"Попытка отправить сообщение в неактивный чат {self.chat_id}")
