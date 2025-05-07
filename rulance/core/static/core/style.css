@@ -1082,6 +1082,23 @@ body {
   color: blue;
 }
 
+.notif-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+}
+.notification-item {
+  position: relative;
+  padding-right: 10px; 
+}
+.notification-item:hover .notif-close {
+  color: #666;
+}
 
 /* ORDERS */
 .orders {

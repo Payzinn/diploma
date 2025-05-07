@@ -1,44 +1,77 @@
 import WSManager from './websocket.js';
 
-function showNotification(message, type = 'success') {
+function showPopup(message, type = 'success') {
   const notification = document.getElementById('notification');
   notification.textContent = message;
   notification.className = 'notification ' + type;
   notification.style.right = '20px';
-  setTimeout(() => {
-    notification.style.right = '-300px';
-  }, 3000);
+  setTimeout(() => notification.style.right = '-300px', 3000);
+}
+
+async function markRead(id) {
+  await fetch(`/notifications/mark_read/${id}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const status    = urlParams.get('status');
-  const msg       = urlParams.get('message');
-  if (status === 'success') {
-    showNotification('Заказ успешно размещён!', 'success');
-  } else if (status === 'error' && msg) {
-    showNotification(`Ошибка: ${msg}`, 'error');
-  }
+  const params = new URLSearchParams(location.search);
+  if (params.get('status') === 'success') showPopup('Заказ успешно размещён!');
+  else if (params.get('status') === 'error' && params.get('message'))
+    showPopup(`Ошибка: ${params.get('message')}`, 'error');
+
+  const chatPage = document.getElementById('chat-page');
+  const currentChatId = chatPage?.dataset.chatId;
 
   const toggle   = document.getElementById('notif-toggle');
   const dropdown = document.querySelector('.dropdown--notif');
   const badge    = document.getElementById('notif-badge');
   const list     = document.getElementById('notif-list');
 
-  toggle.addEventListener('click', () => {
+  function updateBadge(delta) {
+    let cnt = parseInt(badge.textContent) || 0;
+    cnt = Math.max(0, cnt + delta);
+    badge.textContent = cnt > 0 ? cnt : '';
+    badge.style.display = cnt > 0 ? '' : 'none';
+  }
+
+  toggle.addEventListener('click', async () => {
     dropdown.classList.toggle('open');
+    if (dropdown.classList.contains('open')) {
+      const unread = Array.from(list.querySelectorAll('li.notification-item--new'));
+      for (const li of unread) {
+        const id = li.dataset.id;
+        await markRead(id);
+        li.classList.remove('notification-item--new');
+      }
+      updateBadge(-unread.length);
+    }
   });
 
-  const WS_URL = '/ws/notifications/';
-  WSManager.connect(
-    WS_URL,
-    () => WSManager.attachMessageHandler(WS_URL, 'notif_message'),
-    null,
-    null
-  );
+  function injectCloseButtons() {
+    list.querySelectorAll('li.notification-item').forEach(li => {
+      if (!li.querySelector('.notif-close')) {
+        const btn = document.createElement('button');
+        btn.className = 'notif-close';
+        btn.textContent = '×';
+        li.appendChild(btn);
+      }
+    });
+  }
+  injectCloseButtons();
 
+  WSManager.connect('/ws/notifications/',
+    () => WSManager.attachMessageHandler('/ws/notifications/', 'notif_message'),
+    null, null
+  );
   WSManager.registerHandler('notif_message', data => {
-    showNotification(data.verb, 'success');
+    if (currentChatId && data.link.includes(`/chat/${currentChatId}/`)) {
+      markRead(data.id);
+      return;
+    }
+
+    showPopup(data.verb);
 
     const li = document.createElement('li');
     li.className = 'notification-item notification-item--new';
@@ -48,30 +81,28 @@ document.addEventListener('DOMContentLoaded', () => {
         ${data.verb}
         <small class="notification-time">${data.created_at}</small>
       </a>`;
-    const empty = list.querySelector('.notification-empty');
-    if (empty) empty.remove();
     list.prepend(li);
-
-    let count = parseInt(badge.textContent) || 0;
-    badge.textContent = ++count;
-    badge.style.display = '';
+    injectCloseButtons();
+    updateBadge(+1);
   });
 
-  list.addEventListener('click', e => {
+  list.addEventListener('click', async e => {
+    if (e.target.matches('.notif-close')) {
+      const li = e.target.closest('li.notification-item');
+      const id = li.dataset.id;
+      await markRead(id);
+      li.remove();
+      updateBadge(-1);
+      return;
+    }
     const a = e.target.closest('a.notification-link');
     if (!a) return;
     e.preventDefault();
     const li = a.closest('li.notification-item');
     const id = li.dataset.id;
-    fetch(`/notifications/mark_read/${id}/`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
-    }).then(() => {
-      li.classList.remove('notification-item--new');
-      let count = parseInt(badge.textContent) || 1;
-      badge.textContent = count > 1 ? count - 1 : '';
-      if (count <= 1) badge.style.display = 'none';
-      window.location = a.href;
-    });
+    await markRead(id);
+    li.remove();
+    updateBadge(-1);
+    setTimeout(() => window.location = a.href, 100);
   });
 });
