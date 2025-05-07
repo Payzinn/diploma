@@ -32,11 +32,12 @@
                     <ul id="notif-list" class="notifications-list">
                     {% for note in notifications %}
                         <li class="notification-item {% if not note.is_read %}notification-item--new{% endif %}" data-id="{{ note.id }}">
-                        <a href="{{ note.get_absolute_url }}" class="notification-link">
+                        <a href="{{ note.get_absolute_url }}" class="notification-link profile__link">
                             {{ note.verb }}
                             <small class="notification-time">{{ note.created_at|date:"d.m.Y H:i" }}</small>
                         </a>
                         </li>
+                        <hr>
                     {% empty %}
                         <li class="notification-empty">У вас пока нет уведомлений.</li>
                     {% endfor %}

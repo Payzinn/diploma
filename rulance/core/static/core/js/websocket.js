@@ -71,7 +71,6 @@ class WebSocketManager {
         }
     }
 
-    // Проверка, открыто ли соединение
     isConnected(url) {
         const socket = this.connections.get(url);
         return socket && socket.readyState === WebSocket.OPEN;

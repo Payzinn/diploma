@@ -1,6 +1,6 @@
 import WSManager from './websocket.js';
 
-function showNotification(message, type='success') {
+function showNotification(message, type = 'success') {
   const notification = document.getElementById('notification');
   notification.textContent = message;
   notification.className = 'notification ' + type;
@@ -11,6 +11,15 @@ function showNotification(message, type='success') {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const status    = urlParams.get('status');
+  const msg       = urlParams.get('message');
+  if (status === 'success') {
+    showNotification('Заказ успешно размещён!', 'success');
+  } else if (status === 'error' && msg) {
+    showNotification(`Ошибка: ${msg}`, 'error');
+  }
+
   const toggle   = document.getElementById('notif-toggle');
   const dropdown = document.querySelector('.dropdown--notif');
   const badge    = document.getElementById('notif-badge');
