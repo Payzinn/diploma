@@ -87,6 +87,8 @@ body {
     right: 0;
     background: #2D3748;
     border-radius: 8px;
+    overflow-y: auto;
+    max-height: 300px;
     padding: 10px;
     width: 200px;
     z-index: 1000;
@@ -1045,7 +1047,7 @@ body {
 
 .notification {
     position: fixed;
-    top: 20px;
+    top: 100px;
     right: -300px; 
     width: 250px;
     padding: 15px;
@@ -1700,24 +1702,21 @@ empty-state
   background: #252D2E;
   border-radius: 8px;
   padding: 16px;
-  max-height: 600px;        
+  height: 600px;        
   overflow-y: auto;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
 }
 
-/* Общее оформление одного сообщения */
 .chat__message {
   display: flex;
   align-items: flex-start;
   margin-bottom: 12px;
 }
 
-/* Сообщения текущего пользователя — выравниваем вправо */
 .chat__message--self {
   justify-content: flex-end;
 }
 
-/* Аватарка */
 .chat__avatar {
   width: 32px;
   height: 32px;
@@ -1726,12 +1725,10 @@ empty-state
   margin-right: 8px;
 }
 
-/* Если своё сообщение, аватар слева не нужен — сдвигаем тело вправо */
 .chat__message--self .chat__avatar {
   display: none;
 }
 
-/* Тело сообщения: имя, текст, время */
 .chat__body {
   background: #1C2526;
   border-radius: 6px;
@@ -1740,7 +1737,6 @@ empty-state
   position: relative;
 }
 
-/* Имя отправителя */
 .chat__body strong {
   display: block;
   color: #3B82F6;
@@ -1748,7 +1744,6 @@ empty-state
   margin-bottom: 4px;
 }
 
-/* Текст сообщения */
 .chat__body p {
   margin: 0 0 4px;
   color: #F3F4F6;
@@ -1756,7 +1751,6 @@ empty-state
   line-height: 1.4;
 }
 
-/* Время отправки сообщения */
 .chat__time {
   display: block;
   font-size: 0.75rem;
@@ -1777,7 +1771,6 @@ empty-state
   color: rgba(255,255,255,0.7);
 }
 
-/* Форма ввода сообщения*/
 .chat__form {
   display: flex;
   gap: 8px;
