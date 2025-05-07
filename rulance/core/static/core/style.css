@@ -132,6 +132,15 @@ body {
 
 .notification-item {
   list-style: none;
+  position: relative;
+  padding: 10px;
+}
+
+.notification-link {
+  display: block;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  text-decoration: none;
+  padding: 10px;
 }
 
 .text-right {
@@ -1098,6 +1107,18 @@ body {
 }
 .notification-item:hover .notif-close {
   color: #666;
+}
+
+.notification-delete {
+  background: none;
+  border: none;
+  color: #f00;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 5px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
 }
 
 /* ORDERS */

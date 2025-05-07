@@ -36,8 +36,8 @@
                             {{ note.verb }}
                             <small class="notification-time">{{ note.created_at|date:"d.m.Y H:i" }}</small>
                         </a>
+                        <button class="notification-delete" data-id="{{ note.id }}">×</button>
                         </li>
-                        <hr>
                     {% empty %}
                         <li class="notification-empty">У вас пока нет уведомлений.</li>
                     {% endfor %}

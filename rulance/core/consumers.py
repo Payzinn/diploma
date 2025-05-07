@@ -4,6 +4,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocke
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+import pytz
 
 from .models import Chat, Message, Order, Notification
 
@@ -139,7 +141,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'id': note.id,
                         'verb': note.verb,
                         'link': note.get_absolute_url(),
-                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                        'created_at': note.created_at.astimezone(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M'),
                     }
                 }
             )
@@ -148,6 +150,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
 
     async def _send_system_message(self, msg):
+        moscow_tz = pytz.timezone('Europe/Moscow')
+        timestamp_moscow = msg.timestamp.astimezone(moscow_tz)
         payload = {
             'type': 'chat.message',
             'message': msg.text,
@@ -155,9 +159,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': msg.sender.id if msg.sender else None,
             'avatar_url': msg.sender.avatar.url if msg.sender and msg.sender.avatar else '',
             'sender_full_name': msg.sender.full_name or msg.sender.username if msg.sender else 'Система',
-            'time': msg.timestamp.strftime('%H:%M'),
-            'date': msg.timestamp.strftime('%Y-%m-%d'),
-            'date_readable': msg.timestamp.strftime('%d.%m.%Y'),
+            'time': timestamp_moscow.strftime('%H:%M'),
+            'date': timestamp_moscow.strftime('%Y-%m-%d'),
+            'date_readable': timestamp_moscow.strftime('%d.%m.%Y'),
             'is_system': True,
             'extra_data': msg.extra_data,
             'message_type': msg.extra_data.get('type', '') if msg.extra_data else '',
@@ -165,6 +169,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(self.group_name, payload)
 
     async def _send_user_message(self, msg, user):
+        moscow_tz = pytz.timezone('Europe/Moscow')
+        timestamp_moscow = msg.timestamp.astimezone(moscow_tz)
         payload = {
             'type': 'chat.message',
             'message': msg.text,
@@ -172,9 +178,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': user.id,
             'avatar_url': user.avatar.url if user.avatar else '',
             'sender_full_name': user.full_name or user.username,
-            'time': msg.timestamp.strftime('%H:%M'),
-            'date': msg.timestamp.strftime('%Y-%m-%d'),
-            'date_readable': msg.timestamp.strftime('%d.%m.%Y'),
+            'time': timestamp_moscow.strftime('%H:%M'),
+            'date': timestamp_moscow.strftime('%Y-%m-%d'),
+            'date_readable': timestamp_moscow.strftime('%d.%m.%Y'),
             'is_system': False,
             'extra_data': {},
             'message_type': 'user_message',

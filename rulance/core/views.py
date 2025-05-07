@@ -549,11 +549,14 @@ def order_cancel(request, pk):
 
 @require_POST
 @login_required
-def mark_notification_read(request, pk):
-    try:
-        note = request.user.notifications.get(pk=pk)
-    except Notification.DoesNotExist:
-        raise Http404
-    note.is_read = True
-    note.save()
-    return HttpResponse(status=204)
+def mark_notification_read(request, id):
+    notification = get_object_or_404(Notification, id=id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return JsonResponse({'status': 'ok'})
+
+@require_POST
+def delete_notification(request, id):
+    notification = get_object_or_404(Notification, id=id, user=request.user)
+    notification.delete()
+    return JsonResponse({'status': 'ok'})
