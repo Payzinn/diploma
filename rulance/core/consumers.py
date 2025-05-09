@@ -8,6 +8,7 @@ from django.utils import timezone
 import pytz
 
 from .models import Chat, Message, Order, Notification
+from .utils import update_profile_tab  # Импорт для завершения/отмены
 
 User = get_user_model()
 
@@ -105,11 +106,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             if resp == 'yes':
                 order_pk = await self.get_chat_order_pk(self.chat_id)
+                order = await database_sync_to_async(Order.objects.get)(pk=order_pk)
                 if typ == 'cancel':
                     reason = await self.get_cancel_reason(chat, typ)
                     await self._mark_order_cancelled(order_pk, reason)
+                    # Обновляем вкладки
+                    client_count = Order.objects.filter(client=order.client, status='Cancelled').count()
+                    update_profile_tab(order.client, 'cancelled', client_count)
+                    response = await database_sync_to_async(Response.objects.filter(order=order, status='Accepted').first)()
+                    if response:
+                        freelancer_count = Order.objects.filter(
+                            responses__user=response.user, responses__status='Accepted', status='Cancelled'
+                        ).count()
+                        update_profile_tab(response.user, 'cancelled', freelancer_count)
                 else:
                     await self._mark_order_completed(order_pk)
+                    # Обновляем вкладки
+                    client_count = Order.objects.filter(client=order.client, status='Completed').count()
+                    update_profile_tab(order.client, 'completed', client_count)
+                    response = await database_sync_to_async(Response.objects.filter(order=order, status='Accepted').first)()
+                    if response:
+                        freelancer_count = Response.objects.filter(
+                            user=response.user, status='Accepted', order__status='Completed'
+                        ).count()
+                        update_profile_tab(response.user, 'completed', freelancer_count)
                 await self._deactivate_chat(self.chat_id)
             return
 
@@ -206,12 +226,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat.is_active = False
         chat.save()
 
-
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         user = self.scope["user"]
         if user.is_anonymous:
-            return await self.close()
+            await self.close()
         self.group_name = f"notifications_{user.id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -221,3 +240,19 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
     async def notif_message(self, event):
         await self.send_json(event["data"])
+
+class ProfileConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+        if self.user.is_anonymous:
+            await self.close()
+        else:
+            self.group_name = f"profile_{self.user.id}"
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def profile_update(self, event):
+        await self.send(text_data=json.dumps(event["data"]))

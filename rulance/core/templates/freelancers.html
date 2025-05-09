@@ -7,6 +7,21 @@
 <section class="container freelancers">
   <h2 class="page_header">Фрилансеры</h2>
 
+  {% if freelancers.has_other_pages %}
+  <div class="pagination">
+    {% for p in page_range %}
+      {% if p == '…' %}
+        <span class="pagination__ellipsis">…</span>
+      {% elif p == freelancers.number %}
+        <span class="pagination__current">{{ p }}</span>
+      {% else %}
+        <a href="?page={{ p }}{% if get_params %}&{{ get_params }}{% endif %}"
+           class="pagination__page">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
   {% if freelancers %}
     <ul class="freelancers-list">
       {% for user in freelancers %}
@@ -38,6 +53,22 @@
       </li>
       {% endfor %}
     </ul>
+
+    {% if freelancers.has_other_pages %}
+    <div class="pagination">
+      {% for p in page_range %}
+        {% if p == '…' %}
+          <span class="pagination__ellipsis">…</span>
+        {% elif p == freelancers.number %}
+          <span class="pagination__current">{{ p }}</span>
+        {% else %}
+          <a href="?page={{ p }}{% if get_params %}&{{ get_params }}{% endif %}"
+             class="pagination__page">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% else %}
     <p class="empty-state">Пока нет фрилансеров с портфолио.</p>
   {% endif %}

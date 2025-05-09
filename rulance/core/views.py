@@ -11,7 +11,9 @@ from django.contrib import messages
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_POST
 from asgiref.sync import async_to_sync
+from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
+from .utils import update_profile_tab
 
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
@@ -24,18 +26,40 @@ def freelancers(request):
         role='Freelancer',
         portfolio__isnull=False
     ).select_related('portfolio')
+
+    paginator   = Paginator(qs, 10)
+    page_number = request.GET.get('page') or 1
+    page_obj    = paginator.get_page(page_number)
+
+    elided_range = paginator.get_elided_page_range(
+        number=page_obj.number,
+        on_each_side=2,
+        on_ends=1,
+    )
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    get_params = params.urlencode()
+
     return render(request, 'freelancers.html', {
-        'freelancers': qs,
+        'freelancers': page_obj,
         'spheres': spheres,
         'sphere_types': sphere_types,
+        'page_range': elided_range,
+        'get_params': get_params,
     })
 
 def orders(request):
-    spheres       = Sphere.objects.all()
-    sphere_types  = SphereType.objects.all()
+    spheres      = Sphere.objects.all()
+    sphere_types = SphereType.objects.all()
 
-    qs = Order.objects.filter(status='Open') \
-                      .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
+    qs = (
+        Order.objects
+             .filter(status='Open')
+             .annotate(responses_count=Count('responses',
+                                filter=Q(responses__status='Pending')))
+             .select_related('sphere', 'sphere_type', 'client')
+    )
 
     search = request.GET.get('search', '').strip()
     if search:
@@ -44,6 +68,7 @@ def orders(request):
     price_min = request.GET.get('price_min')
     if price_min:
         qs = qs.filter(price__gte=price_min)
+
     price_max = request.GET.get('price_max')
     if price_max:
         qs = qs.filter(price__lte=price_max)
@@ -70,10 +95,22 @@ def orders(request):
     else:
         qs = qs.order_by('-created_at')
 
-    qs = qs.select_related('sphere','sphere_type','client')
+    paginator   = Paginator(qs, 10)
+    page_number = request.GET.get('page') or 1
+    page_obj    = paginator.get_page(page_number)
+
+    elided_range = paginator.get_elided_page_range(
+        number=page_obj.number,
+        on_each_side=2,
+        on_ends=1,
+    )
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    get_params = params.urlencode()
 
     return render(request, 'orders.html', {
-        'orders': qs,
+        'orders': page_obj,
         'spheres': spheres,
         'sphere_types': sphere_types,
         'filter': {
@@ -83,7 +120,9 @@ def orders(request):
             'sphere_id': sphere_id or '',
             'sphere_types_ids': list(map(int, sphere_types_ids)) if sphere_types_ids else [],
             'sort': sort,
-        }
+        },
+        'page_range': elided_range,
+        'get_params': get_params,
     })
 
 def register(request):
@@ -104,8 +143,6 @@ def switch_role(request):
     u.save()
     return redirect('index')
 
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Count, Q
 
 def profile(request, pk=None):
     if pk:
@@ -239,7 +276,6 @@ def profile(request, pk=None):
 
     return render(request, 'profile.html', context)
 
-
 @login_required
 def response_reject(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
@@ -325,6 +361,9 @@ def make_order(request):
             order.save()
             for f in request.FILES.getlist('files'):
                 OrderFile.objects.create(order=order, file=f)
+            # Обновляем вкладку "orders" для клиента
+            count = Order.objects.filter(client=request.user).count()
+            update_profile_tab(request.user, 'orders', count)
             return redirect(reverse('make_order') + '?status=success')
     else:
         form = OrderForm()
@@ -333,7 +372,6 @@ def make_order(request):
         'form': form,
         'spheres': spheres,
     })
-
 
 def order_detail(request, pk):
     order = get_object_or_404(
@@ -362,42 +400,36 @@ def order_detail(request, pk):
 @login_required
 def order_respond(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    
     if request.user.role != 'Freelancer':
-        return redirect('order_detail', pk=pk)
+        return redirect(reverse('order_detail', args=[order.pk]) + '?error=not_freelancer')
+    
     if not hasattr(request.user, 'portfolio'):
-        return redirect(reverse('order_detail', args=[pk]) + '?no_portfolio=1')
-    if order.responses.filter(user=request.user).exists():
-        return redirect(reverse('order_detail', args=[pk]) + '?already=1')
-
+        return redirect(reverse('order_detail', args=[order.pk]) + '?no_portfolio=1')
+    
+    if Response.objects.filter(order=order, user=request.user).exists():
+        return redirect(reverse('order_detail', args=[order.pk]) + '?already=1')
+    
     if request.method == 'POST':
         form = ResponseForm(request.POST)
         if form.is_valid():
-            resp = form.save(commit=False)
-            resp.order = order
-            resp.user = request.user
-            resp.save()
-
-            verb = f'Новый отклик от «{request.user.full_name}» на ваш заказ «{order.title}»'
-            link = reverse('response_detail', args=[resp.pk])
-            note = Notification.objects.create(user=order.client, verb=verb, link=link)
-
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f'notifications_{order.client.id}',
-                {
-                    'type': 'notif_message',
-                    'data': {
-                        'id': note.id,
-                        'verb': note.verb,
-                        'link': note.get_absolute_url(),
-                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
-                    }
-                }
-            )
-
-            return redirect(reverse('order_detail', args=[pk]) + '?responded=1')
-
-    return redirect('order_detail', pk=pk)
+            response = form.save(commit=False)
+            response.order = order
+            response.user = request.user
+            response.status = 'Pending'
+            response.save()
+            freelancer_count = Response.objects.filter(user=request.user, status='Pending').count()
+            update_profile_tab(request.user, 'pending', freelancer_count)
+            client_count = Response.objects.filter(order__client=order.client, status='Pending').count()
+            update_profile_tab(order.client, 'pending', client_count)
+            return redirect(reverse('order_detail', args=[order.pk]) + '?responded=1')
+    else:
+        form = ResponseForm()
+    
+    return render(request, 'order_detail.html', {
+        'order': order,
+        'response_form': form,
+    })
 
 @login_required
 def response_detail(request, pk):
@@ -417,40 +449,36 @@ def response_detail(request, pk):
     })
 
 @login_required
-def response_accept(request, pk):
-    resp = get_object_or_404(Response, pk=pk, order__client=request.user)
-    resp.status = 'Accepted'
-    resp.save()
-
-    order = resp.order
-    order.status = 'InWork'
-    order.save()
-
-    chat, _ = Chat.objects.get_or_create(
-        order=order,
-        freelancer=resp.user,
-        client=request.user
+def response_accept(request, response_id):
+    response = get_object_or_404(Response, pk=response_id)
+    if request.user != response.order.client:
+        return redirect('order_detail', response.order.pk)
+    
+    response.status = 'Accepted'
+    response.order.status = 'InWork'
+    response.save()
+    response.order.save()
+    
+    # Создаем чат
+    chat, created = Chat.objects.get_or_create(
+        order=response.order,
+        client=response.order.client,
+        freelancer=response.user,
+        defaults={'is_active': True}
     )
-
-    verb = f'Ваш отклик на «{order.title}» принят.'
-    link = reverse('chat_detail', args=[chat.pk])
-    note = Notification.objects.create(user=resp.user, verb=verb, link=link)
-
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'notifications_{resp.user.id}',
-        {
-            'type': 'notif_message',
-            'data': {
-                'id': note.id,
-                'verb': note.verb,
-                'link': note.get_absolute_url(),
-                'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
-            }
-        }
-    )
-
-    return redirect('profile')
+    
+    # Обновляем вкладки
+    client_pending_count = Response.objects.filter(order__client=response.order.client, status='Pending').count()
+    client_in_work_count = Response.objects.filter(order__client=response.order.client, status='Accepted', order__status='InWork').count()
+    update_profile_tab(response.order.client, 'pending', client_pending_count)
+    update_profile_tab(response.order.client, 'in_work', client_in_work_count)
+    
+    freelancer_pending_count = Response.objects.filter(user=response.user, status='Pending').count()
+    freelancer_in_work_count = Response.objects.filter(user=response.user, status='Accepted', order__status='InWork').count()
+    update_profile_tab(response.user, 'pending', freelancer_pending_count)
+    update_profile_tab(response.user, 'in_work', freelancer_in_work_count)
+    
+    return redirect('order_detail', response.order.pk)
 
 @login_required
 def response_reject(request, pk):
@@ -528,24 +556,43 @@ def chat_detail(request, chat_id):
     })
 
 @login_required
-def order_complete(request, pk):
-    order = get_object_or_404(Order, pk=pk, client=request.user)
-    if order.status != 'InWork':
-        messages.error(request, 'Нельзя завершить заказ в текущем статусе.')
-    else:
-        order.status = 'Completed'
-        order.save()
-        messages.success(request, 'Заказ отмечен как выполненный.')
-    return redirect('profile')
+def order_complete(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    if request.user != order.client:
+        return redirect('order_detail', order.pk)
+    
+    return redirect('chat_detail', chat_id=Chat.objects.get(order=order, client=order.client).pk)
 
 @login_required
-def order_cancel(request, pk):
-    order = get_object_or_404(Order, pk=pk, client=request.user)
-    if order.status not in ('Open', 'InWork'):
-        messages.error(request, 'Нельзя отменить заказ в текущем статусе.')
-    else:
+def order_cancel(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    if request.user != order.client:
+        return redirect('order_detail', order.pk)
+    
+    if request.method == 'POST':
         reason = request.POST.get('reason', '')
         order.status = 'Cancelled'
+        order.reason_of_cancel = reason
+        order.save()
+        
+        chat = Chat.objects.filter(order=order, client=order.client).first()
+        if chat:
+            chat.is_active = False
+            chat.save()
+        
+        client_count = Order.objects.filter(client=order.client, status='Cancelled').count()
+        update_profile_tab(order.client, 'cancelled', client_count)
+        
+        response = Response.objects.filter(order=order, status='Accepted').first()
+        if response:
+            freelancer_count = Order.objects.filter(
+                responses__user=response.user, responses__status='Accepted', status='Cancelled'
+            ).count()
+            update_profile_tab(response.user, 'cancelled', freelancer_count)
+        
+        return redirect('order_detail', order.pk)
+    
+    return render(request, 'order_cancel.html', {'order': order})
 
 @require_POST
 @login_required

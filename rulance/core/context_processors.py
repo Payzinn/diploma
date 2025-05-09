@@ -8,3 +8,4 @@ def notifications(request):
         'notifications': qs,
         'unread_count': qs.filter(is_read=False).count(),
     }
+

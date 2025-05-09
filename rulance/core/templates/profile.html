@@ -110,24 +110,24 @@
         {% if profile_user.role == 'Client' %}
           <a href="?tab=orders"
              class="profile__tab {% if current_tab == 'orders' %}active{% endif %}">
-            Мои заказы <span class="profile__badge">{{ client_orders|length }}</span>
+            Мои заказы <span class="profile__badge" data-tab="orders">{{ client_orders|length }}</span>
           </a>
         {% endif %}
         <a href="?tab=pending"
            class="profile__tab {% if current_tab == 'pending' %}active{% endif %}">
-          {{ tab_label }} <span class="profile__badge">{{ pending.count }}</span>
+          {{ tab_label }} <span class="profile__badge" data-tab="pending">{{ pending.count }}</span>
         </a>
         <a href="?tab=in_work"
            class="profile__tab {% if current_tab == 'in_work' %}active{% endif %}">
-          В работе <span class="profile__badge">{{ in_work.count }}</span>
+          В работе <span class="profile__badge" data-tab="in_work">{{ in_work.count }}</span>
         </a>
         <a href="?tab=completed"
            class="profile__tab {% if current_tab == 'completed' %}active{% endif %}">
-          Завершённые <span class="profile__badge">{{ completed.count }}</span>
+          Завершённые <span class="profile__badge" data-tab="completed">{{ completed.count }}</span>
         </a>
         <a href="?tab=cancelled"
            class="profile__tab {% if current_tab == 'cancelled' %}active{% endif %}">
-          Отменённые <span class="profile__badge">{{ cancelled.count }}</span>
+          Отменённые <span class="profile__badge" data-tab="cancelled">{{ cancelled.count }}</span>
         </a>
       </div>
 
@@ -204,7 +204,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center text-center">
+            <p class="empty-state text-center">
               {% if profile_user.role == 'Client' %}
                 На ваши заказы ещё никто не откликнулся.
               {% else %}
@@ -240,7 +240,7 @@
             <p class="empty-state text-center">Нет заказов в работе.</p>
           {% endif %}
 
-          {% elif current_tab == 'completed' %}
+        {% elif current_tab == 'completed' %}
           {% if profile_user.role == 'Client' %}
             {% if completed %}
               <ul class="orders-list">
@@ -281,7 +281,7 @@
             {% endif %}
           {% endif %}
 
-          {% elif current_tab == 'cancelled' %}
+        {% elif current_tab == 'cancelled' %}
           {% if cancelled %}
             <ul class="orders-list">
               {% for order in cancelled %}
@@ -317,10 +317,48 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center ">Нет отменённых заказов.</p>
+            <p class="empty-state text-center">Нет отменённых заказов.</p>
           {% endif %}
         {% endif %}
-          </div>
+      </div>
     </section>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if is_own %}
+    <script type="module">
+      import WebSocketManager from '{% static "core/js/websocket.js" %}';
+
+      const wsManager = WebSocketManager;
+      const profileWsUrl = '/ws/profile/';
+
+      // Подключение к WebSocket
+      wsManager.connect(
+        profileWsUrl,
+        () => {
+          console.log('WebSocket для профиля подключён');
+        },
+        (error) => {
+          console.error('Ошибка WebSocket:', error);
+        },
+        (event) => {
+          console.warn('WebSocket закрыт:', event);
+        }
+      );
+
+      // Обработчик сообщений WebSocket
+      wsManager.registerHandler('profile_updates', (data) => {
+        console.log('Получено обновление:', data);
+        const tab = data.tab;
+        const count = data.count;
+        const badge = document.querySelector(`.profile__badge[data-tab="${tab}"]`);
+        if (badge) {
+          badge.textContent = count;
+        }
+      });
+
+      wsManager.attachMessageHandler(profileWsUrl, 'profile_updates');
+    </script>
   {% endif %}
 {% endblock %}
