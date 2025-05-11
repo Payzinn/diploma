@@ -3,17 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const msgEl     = document.getElementById('confirm-modal-message');
   const btnYes    = document.getElementById('confirm-yes');
   const btnNo     = document.getElementById('confirm-no');
-  let   targetForm = null;
+  let   targetAction = null; 
 
-  function openConfirm(message, form) {
+  function openConfirm(message, action) {
       msgEl.textContent = message;
-      targetForm = form;
+      targetAction = action;
       modal.classList.add('modal--show');
   }
 
   function closeConfirm() {
       modal.classList.remove('modal--show');
-      targetForm = null;
+      targetAction = null;
   }
 
   document.querySelectorAll('.js-confirm-action').forEach(el => {
@@ -21,20 +21,25 @@ document.addEventListener('DOMContentLoaded', () => {
           e.preventDefault();
           const form = el.closest('form');
           if (form) {
-              openConfirm(el.dataset.confirmMessage, form);
+              openConfirm(el.dataset.confirmMessage, { type: 'form', element: form });
+          } else if (el.href) {
+              openConfirm(el.dataset.confirmMessage, { type: 'link', href: el.href });
           }
       });
   });
 
   btnYes.addEventListener('click', () => {
-      if (targetForm) {
-          targetForm.submit();
+      if (targetAction) {
+          if (targetAction.type === 'form') {
+              targetAction.element.submit();
+          } else if (targetAction.type === 'link') {
+              window.location.href = targetAction.href;
+          }
       }
   });
 
   btnNo.addEventListener('click', closeConfirm);
 
-  // Закрыть по клику вне контента
   modal.addEventListener('click', e => {
       if (e.target === modal) closeConfirm();
   });

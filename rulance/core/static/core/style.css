@@ -598,9 +598,13 @@ body {
     font-size: 0.85rem;
   }
   .responses-list {
-    list-style: none;
+    display: flex;
     margin: 1rem 0;
-    padding: 0;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .responses-list li{
+    list-style: none;
   }
   .response-item {
     background: #2D3335;
