@@ -413,10 +413,30 @@ def order_respond(request, pk):
             response.user = request.user
             response.status = 'Pending'
             response.save()
+            
+            verb = f'Новый отклик на «{order.title}»'
+            link = reverse('response_detail', args=[response.pk])
+            note = Notification.objects.create(user=order.client, verb=verb, link=link)
+            
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{order.client.id}',
+                {
+                    'type': 'notif_message',
+                    'data': {
+                        'id': note.id,
+                        'verb': note.verb,
+                        'link': note.get_absolute_url(),
+                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                    }
+                }
+            )
+            
             freelancer_count = Response.objects.filter(user=request.user, status='Pending').count()
             update_profile_tab(request.user, 'pending', freelancer_count)
             client_count = Response.objects.filter(order__client=order.client, status='Pending').count()
             update_profile_tab(order.client, 'pending', client_count)
+            
             return redirect(reverse('order_detail', args=[order.pk]) + '?responded=1')
     else:
         form = ResponseForm()
@@ -454,7 +474,24 @@ def response_accept(request, pk):
     response.save()
     response.order.save()
     
-    # Создаем чат
+    verb = f'Ваш отклик на «{response.order.title}» принят.'
+    link = reverse('response_detail', args=[response.pk])
+    note = Notification.objects.create(user=response.user, verb=verb, link=link)
+    
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'notifications_{response.user.id}',
+        {
+            'type': 'notif_message',
+            'data': {
+                'id': note.id,
+                'verb': note.verb,
+                'link': note.get_absolute_url(),
+                'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+            }
+        }
+    )
+    
     chat, created = Chat.objects.get_or_create(
         order=response.order,
         client=response.order.client,
@@ -462,7 +499,6 @@ def response_accept(request, pk):
         defaults={'is_active': True}
     )
     
-    # Обновляем вкладки
     client_pending_count = Response.objects.filter(order__client=response.order.client, status='Pending').count()
     client_in_work_count = Response.objects.filter(order__client=response.order.client, status='Accepted', order__status='InWork').count()
     update_profile_tab(response.order.client, 'pending', client_pending_count)
@@ -500,7 +536,7 @@ def response_reject(request, pk):
     )
 
     return redirect('profile')
-
+    
 @login_required
 def notifications_list(request):
     qs = request.user.notifications.all()
