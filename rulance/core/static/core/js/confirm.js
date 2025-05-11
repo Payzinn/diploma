@@ -1,36 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const modal     = document.getElementById('confirm-modal');
-    const msgEl     = document.getElementById('confirm-modal-message');
-    const btnYes    = document.getElementById('confirm-yes');
-    const btnNo     = document.getElementById('confirm-no');
-    let   targetHref = null;
-  
-    function openConfirm(message, href) {
+  const modal     = document.getElementById('confirm-modal');
+  const msgEl     = document.getElementById('confirm-modal-message');
+  const btnYes    = document.getElementById('confirm-yes');
+  const btnNo     = document.getElementById('confirm-no');
+  let   targetForm = null;
+
+  function openConfirm(message, form) {
       msgEl.textContent = message;
-      targetHref = href;
+      targetForm = form;
       modal.classList.add('modal--show');
-    }
-  
-    function closeConfirm() {
+  }
+
+  function closeConfirm() {
       modal.classList.remove('modal--show');
-      targetHref = null;
-    }
-  
-    document.querySelectorAll('.js-confirm-action').forEach(el => {
+      targetForm = null;
+  }
+
+  document.querySelectorAll('.js-confirm-action').forEach(el => {
       el.addEventListener('click', e => {
-        e.preventDefault();
-        openConfirm(el.dataset.confirmMessage, el.href);
+          e.preventDefault();
+          const form = el.closest('form');
+          if (form) {
+              openConfirm(el.dataset.confirmMessage, form);
+          }
       });
-    });
-  
-    btnYes.addEventListener('click', () => {
-      if (targetHref) window.location.href = targetHref;
-    });
-    btnNo.addEventListener('click', closeConfirm);
-  
-    // закрыть по клику вне контента
-    modal.addEventListener('click', e => {
-      if (e.target === modal) closeConfirm();
-    });
   });
-  
+
+  btnYes.addEventListener('click', () => {
+      if (targetForm) {
+          targetForm.submit();
+      }
+  });
+
+  btnNo.addEventListener('click', closeConfirm);
+
+  // Закрыть по клику вне контента
+  modal.addEventListener('click', e => {
+      if (e.target === modal) closeConfirm();
+  });
+});

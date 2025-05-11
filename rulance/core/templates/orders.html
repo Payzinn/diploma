@@ -127,9 +127,6 @@
             <span class="order-item__count">{{ order.responses_count }}</span>
           </span>
         </h3>
-        <p class="order-item__desc">
-          {{ order.description|truncatewords:25 }}
-        </p>
         <div class="order-item__meta">
           <span>Категория:</span>
           <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
@@ -152,7 +149,6 @@
     <p class="orders__empty">Пока нет ни одного заказа.</p>
   {% endif %}
 
-  <p>Debug: has_other_pages={{ orders.has_other_pages }}</p>
   {% if orders.has_other_pages %}
     <div class="pagination pagination--bottom">
       {% for p in page_range %}

@@ -150,8 +150,7 @@ def profile(request, pk=None):
     else:
         profile_user = request.user
 
-    is_own = request.user.is_authenticated and (profile_user == request.user)
-
+    is_own = request.user == profile_user
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     if request.method == 'POST' and is_own:
@@ -161,7 +160,7 @@ def profile(request, pk=None):
             return JsonResponse({'success': True, 'avatar_url': request.user.avatar.url})
         else:
             return JsonResponse({'success': False, 'errors': avatar_form.errors}, status=400)
-        
+
     context = {
         'profile_user': profile_user,
         'is_own': is_own,
@@ -181,55 +180,41 @@ def profile(request, pk=None):
                  )
                  .select_related('sphere', 'sphere_type')
         )
-        if request.user.is_authenticated and not is_own and request.user.role == 'Freelancer':
-            my_resps = Response.objects.filter(
-                order__client=profile_user,
-                user=request.user
-            )
+        if is_own or request.user.role != 'Freelancer':
+            client_orders = list(qs)
+        else:
+            my_resps = Response.objects.filter(order__client=profile_user, user=request.user)
             resp_map = {r.order_id: r for r in my_resps}
             for o in qs:
                 o.user_response = resp_map.get(o.pk)
                 client_orders.append(o)
-        else:
-            client_orders = list(qs)
-
     context['client_orders'] = client_orders
 
     if is_own:
         if profile_user.role == 'Client':
             tab_label = 'Отклики исполнителей'
             pending = Response.objects.filter(
-                order__client=profile_user,
-                status='Pending'
+                order__client=profile_user, status='Pending'
             ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
             in_work = Response.objects.filter(
-                order__client=profile_user,
-                status='Accepted',
-                order__status='InWork'
+                order__client=profile_user, status='Accepted', order__status='InWork'
             ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
             completed = Order.objects.filter(
-                client=profile_user,
-                status='Completed'
+                client=profile_user, status='Completed'
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
             cancelled = Order.objects.filter(
-                client=profile_user,
-                status='Cancelled'
+                client=profile_user, status='Cancelled'
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
         else:
             tab_label = 'Мои отклики'
             pending = Response.objects.filter(
-                user=profile_user,
-                status='Pending'
+                user=profile_user, status='Pending'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             in_work = Response.objects.filter(
-                user=profile_user,
-                status='Accepted',
-                order__status='InWork'
+                user=profile_user, status='Accepted', order__status='InWork'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             completed = Response.objects.filter(
-                user=profile_user,
-                status='Accepted',
-                order__status='Completed'
+                user=profile_user, status='Accepted', order__status='Completed'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
             cancelled = Order.objects.filter(
                 responses__user=profile_user,
@@ -239,7 +224,6 @@ def profile(request, pk=None):
 
         resp_list = list(in_work) + list(completed)
         order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
-
         if profile_user.role == 'Client':
             chats = Chat.objects.filter(
                 order__client=profile_user,
@@ -252,10 +236,7 @@ def profile(request, pk=None):
                 else:
                     r.chat = None
         else:
-            chats = Chat.objects.filter(
-                freelancer=profile_user,
-                order_id__in=order_ids
-            )
+            chats = Chat.objects.filter(freelancer=profile_user, order_id__in=order_ids)
             chat_map = {c.order_id: c for c in chats}
             for r in resp_list:
                 r.chat = chat_map.get(r.order_id if isinstance(r, Response) else r.pk)
@@ -264,6 +245,20 @@ def profile(request, pk=None):
         current_tab = request.GET.get('tab', default_tab)
         if current_tab not in ('orders', 'pending', 'in_work', 'completed', 'cancelled'):
             current_tab = default_tab
+
+        if profile_user.role == 'Client' and current_tab == 'orders':
+            open_orders = (
+                Order.objects
+                     .filter(client=profile_user, status='Open')
+                     .annotate(
+                         responses_count=Count(
+                             'responses',
+                             filter=Q(responses__status='Pending')
+                         )
+                     )
+                     .select_related('sphere', 'sphere_type')
+            )
+            context['open_orders'] = open_orders
 
         context.update({
             'tab_label': tab_label,
@@ -449,8 +444,8 @@ def response_detail(request, pk):
     })
 
 @login_required
-def response_accept(request, response_id):
-    response = get_object_or_404(Response, pk=response_id)
+def response_accept(request, pk):
+    response = get_object_or_404(Response, pk=pk)
     if request.user != response.order.client:
         return redirect('order_detail', response.order.pk)
     
@@ -607,3 +602,22 @@ def delete_notification(request, id):
     notification = get_object_or_404(Notification, id=id, user=request.user)
     notification.delete()
     return JsonResponse({'status': 'ok'})
+
+@login_required
+def order_delete(request, pk):
+    if request.method != 'POST':
+        return redirect('profile')
+
+    order = get_object_or_404(
+        Order,
+        pk=pk,
+        client=request.user,
+        status='Open'
+    )
+    order.status = 'Deleted'
+    order.save()
+
+    open_orders_count = Order.objects.filter(client=request.user, status='Open').count()
+    update_profile_tab(request.user, 'orders', open_orders_count)
+
+    return redirect(reverse('profile') + '?tab=orders')

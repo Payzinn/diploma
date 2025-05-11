@@ -72,6 +72,7 @@ class Order(models.Model):
         ('InWork', 'В работе'),
         ('Completed', 'Завершён'),
         ('Cancelled', 'Отменён'),
+        ('Deleted', 'Удалён'),
     ]
 
     title = models.CharField("Заголовок", max_length=200)

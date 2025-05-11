@@ -10,7 +10,7 @@
     <!-- Описание -->
     <section class="order-detail__section">
       <h3 class="order-detail__section-title">Описание</h3>
-      <p class="order-detail__description">{{ order.description }}</p>
+      <p class="order-detail__description">{{ order.description|linebreaksbr|safe }}</p>
     </section>
 
     <!-- Детали (вертикальный список) -->
