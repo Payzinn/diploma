@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Оставить отзыв{% endblock %}
+
+{% block content %}
+<section class="container">
+  <h2 class="page_header">Отзыв по заказу «{{ order.title }}»</h2>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-item">
+      {{ form.rating.label_tag }}<br>
+      {{ form.rating }}
+    </div>
+    <div class="form-item">
+      {{ form.comment.label_tag }}
+      {{ form.comment }}
+      {{ form.comment.errors }}
+    </div>
+    <div class="form-item">
+      <button type="submit" class="button-submit">Отправить</button>
+      <a href="{% url 'order_detail' order.pk %}" class="button-reset">Отмена</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

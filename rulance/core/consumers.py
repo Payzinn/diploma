@@ -6,9 +6,9 @@ from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 import pytz
-
+from .models import *
 from .models import Chat, Message, Order, Notification
-from .utils import update_profile_tab  # Импорт для завершения/отмены
+from .utils import update_profile_tab  
 
 User = get_user_model()
 
@@ -110,7 +110,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if typ == 'cancel':
                     reason = await self.get_cancel_reason(chat, typ)
                     await self._mark_order_cancelled(order_pk, reason)
-                    # Обновляем вкладки
                     client_count = Order.objects.filter(client=order.client, status='Cancelled').count()
                     update_profile_tab(order.client, 'cancelled', client_count)
                     response = await database_sync_to_async(Response.objects.filter(order=order, status='Accepted').first)()
@@ -121,7 +120,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         update_profile_tab(response.user, 'cancelled', freelancer_count)
                 else:
                     await self._mark_order_completed(order_pk)
-                    # Обновляем вкладки
                     client_count = Order.objects.filter(client=order.client, status='Completed').count()
                     update_profile_tab(order.client, 'completed', client_count)
                     response = await database_sync_to_async(Response.objects.filter(order=order, status='Accepted').first)()

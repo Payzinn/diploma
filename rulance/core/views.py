@@ -586,13 +586,37 @@ def chat_detail(request, chat_id):
         'form': form,
     })
 
+
+
 @login_required
 def order_complete(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if request.user != order.client:
         return redirect('order_detail', order.pk)
-    
-    return redirect('chat_detail', chat_id=Chat.objects.get(order=order, client=order.client).pk)
+
+    order.status = 'Completed'
+    order.save()
+
+    chat = Chat.objects.filter(order=order, client=order.client).first()
+    if chat:
+        chat.is_active = False
+        chat.save()
+
+    client_completed = Order.objects.filter(
+        client=order.client, status='Completed'
+    ).count()
+    update_profile_tab(order.client, 'completed', client_completed)
+
+    resp = Response.objects.filter(order=order, status='Accepted').first()
+    if resp:
+        freelancer_completed = Order.objects.filter(
+            responses__user=resp.user,
+            responses__status='Accepted',
+            status='Completed'
+        ).count()
+        update_profile_tab(resp.user, 'completed', freelancer_completed)
+
+    return redirect('chat_detail', chat_id=chat.pk)
 
 @login_required
 def order_cancel(request, order_id):

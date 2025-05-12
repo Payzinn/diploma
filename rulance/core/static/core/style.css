@@ -1222,6 +1222,9 @@ body {
     font-size: 0.95rem;
     line-height: 1.4;
     margin-bottom: 16px;
+    white-space: normal; 
+    overflow-wrap: break-word; 
+    word-break: break-word; 
   }
   
   .order-item__meta,
@@ -1408,10 +1411,10 @@ body {
   font-size: 1rem; 
   margin: 0;
   white-space: normal; 
-  overflow-wrap: break-word;
-  word-break: break-word;
-
+  overflow-wrap: break-word; 
+  word-break: break-word; 
 }
+
 .order-detail__dl {
   margin: 0;
   padding: 0;

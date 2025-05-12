@@ -72,7 +72,6 @@
                   <span class="order-item__count">{{ order.responses_count }}</span>
                 </span>
               </h3>
-              <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
               <div class="order-item__meta">
                 <span>Категория:</span>
                 <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
@@ -259,7 +258,6 @@
                         {{ order.title }}
                       </a>
                     </h3>
-                    <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
                     <div class="order-item__date">
                       Завершён: {{ order.updated_at|date:"d.m.Y H:i" }}
                     </div>
@@ -299,7 +297,6 @@
                       {{ order.title }}
                     </a>
                   </h3>
-                  <p class="order-item__desc">{{ order.description|truncatewords:25 }}</p>
                   <div class="order-item__meta">
                     <span>Категория:</span>
                     <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
