@@ -1,7 +1,7 @@
 class WebSocketManager {
     constructor() {
         this.connections = new Map();
-        this.handlers = new Map(); 
+        this.handlers = new Map();
     }
 
     connect(url, onOpen, onError, onClose) {
@@ -52,12 +52,21 @@ class WebSocketManager {
 
         socket.onmessage = (e) => {
             console.log(`[WebSocket] Получено сообщение на ${url}:`, e.data);
-            const data = JSON.parse(e.data);
-            const handler = this.handlers.get(group);
-            if (handler) {
-                handler(data);
-            } else {
-                console.warn(`[WebSocket] Нет обработчика для группы ${group}`);
+            let data;
+            try {
+                data = JSON.parse(e.data);
+            } catch (error) {
+                console.error(`[WebSocket] Ошибка парсинга сообщения на ${url}:`, error);
+                return;
+            }
+
+            if (data.type === 'profile.update' && group === 'profile') {
+                const handler = this.handlers.get(group);
+                if (handler) {
+                    handler(data.data); 
+                } else {
+                    console.warn(`[WebSocket] Нет обработчика для группы ${group}`);
+                }
             }
         };
     }
@@ -77,4 +86,32 @@ class WebSocketManager {
     }
 }
 
-export default new WebSocketManager();
+const wsManager = new WebSocketManager();
+
+wsManager.registerHandler('profile', (data) => {
+    console.log('[WebSocket] Обновление профиля:', data);
+    const { tab, count } = data;
+    if (tab === 'balance') {
+        const balanceElement = document.getElementById('balance-amount');
+        if (balanceElement) {
+            balanceElement.textContent = `${parseFloat(count).toFixed(2)} RUB`;
+        }
+    } else {
+        const badge = document.querySelector(`.profile__badge[data-tab="${tab}"]`);
+        if (badge) {
+            badge.textContent = count;
+        }
+    }
+});
+
+if (document.body.dataset.authenticated === 'true') {
+    wsManager.connect(
+        '/ws/profile/',
+        (socket) => console.log('[WebSocket] Профиль подключён'),
+        (error) => console.error('[WebSocket] Ошибка профиля:', error),
+        (event) => console.warn('[WebSocket] Профиль закрыт:', event)
+    );
+    wsManager.attachMessageHandler('/ws/profile/', 'profile');
+}
+
+export default wsManager;

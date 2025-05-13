@@ -19,6 +19,10 @@
         </nav>
         <div class="text-right">
                 {% if user.is_authenticated %}
+                <a href="{% url 'recharge_balance' %}" class="header__balance">
+                    <span class="header__balance-icon">💰</span>
+                    <span id="balance-amount">{{ user.balance|floatformat:2 }} RUB</span>
+                </a>
                 <div class="dropdown dropdown--notif">
                 <button id="notif-toggle" class="dropdown__toggle">
                     🔔

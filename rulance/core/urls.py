@@ -30,4 +30,6 @@ urlpatterns = [
     path('order/<int:pk>/cancel/',   views.order_cancel,   name='order_cancel'),
     path('notifications/mark_read/<int:id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/delete/<int:id>/', views.delete_notification, name='delete_notification'),
+    path('recharge/', views.recharge_balance, name='recharge_balance'),
+    path('recharge/confirm/', views.confirm_recharge, name='confirm_recharge'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

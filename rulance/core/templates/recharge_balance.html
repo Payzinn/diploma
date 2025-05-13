@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Пополнение баланса{% endblock %}
+
+{% block content %}
+  <section class="container recharge">
+    <h2 class="page_header">Пополнение баланса</h2>
+    <form id="payment-form" class="recharge__form">
+      <div class="form-group">
+        <label for="amount">Сумма (RUB)</label>
+        <input type="number" id="amount" name="amount" min="1" step="0.01" required placeholder="Введите сумму">
+      </div>
+      <div class="form-group">
+        <label for="card-element">Кредитная или дебетовая карта</label>
+        <div id="card-element" class="stripe-card"></div>
+        <div id="card-errors" role="alert"></div>
+      </div>
+      <button type="submit" class="button">Пополнить</button>
+    </form>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    // Проверяем, загружен ли Stripe
+    if (typeof Stripe === 'undefined') {
+      console.error('Stripe.js не загружен. Проверьте подключение к https://js.stripe.com/v3/');
+      document.getElementById('card-errors').textContent = 'Ошибка загрузки Stripe. Проверьте интернет-соединение.';
+    } else {
+      const stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+      const elements = stripe.elements();
+      const card = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#32325d',
+            '::placeholder': { color: '#aab7c4' }
+          }
+        }
+      });
+      card.mount('#card-element');
+
+      card.on('ready', () => {
+        console.log('Поле карты успешно инициализировано');
+      });
+
+      const form = document.getElementById('payment-form');
+      const errorElement = document.getElementById('card-errors');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        errorElement.textContent = '';
+
+        const amount = form.querySelector('#amount').value;
+        console.log('Отправка суммы:', amount);
+        const response = await fetch('{% url "recharge_balance" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: new URLSearchParams({ amount }),
+        });
+        const result = await response.json();
+        console.log('Ответ сервера:', result);
+
+        if (result.error) {
+          errorElement.textContent = result.error;
+          return;
+        }
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(result.client_secret, {
+          payment_method: { card },
+        });
+
+        if (error) {
+          errorElement.textContent = error.message;
+          console.error('Ошибка Stripe:', error);
+          return;
+        }
+
+        if (paymentIntent.status === 'succeeded') {
+          console.log('Платёж успешен:', paymentIntent);
+          const confirmResponse = await fetch('{% url "confirm_recharge" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: new URLSearchParams({ payment_intent_id: paymentIntent.id }),
+          });
+          const confirmResult = await confirmResponse.json();
+          console.log('Ответ подтверждения:', confirmResult);
+
+          if (confirmResult.success) {
+            window.location.href = '{% url "profile" %}';
+          } else {
+            errorElement.textContent = confirmResult.error;
+          }
+        }
+      });
+    }
+  </script>
+{% endblock %}

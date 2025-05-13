@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
+import stripe
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51ROPgSIAwbRkOOsQ0KeidDZjstd53tyJsdIsXnloEUnJP85ZDGn4Mo5vNdYUN4j9gtSWn7WUg0UQByQwpZgNJrpf00Wxhq7HAc'
+STRIPE_SECRET_KEY = 'sk_test_51ROPgSIAwbRkOOsQVqeiRNWI60vQ6FZZyy55R0tkSSqoKgD07oGLbn9ovI5OsG1AGKQAFg2HakcvsMa1Z7ewFXAr00WxG0meQR'
 # Application definition
 
 INSTALLED_APPS = [

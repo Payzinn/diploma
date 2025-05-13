@@ -4,7 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
-from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message
+from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
@@ -14,6 +14,12 @@ from asgiref.sync import async_to_sync
 from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
 from .utils import update_profile_tab
+import stripe
+from django.conf import settings
+from decimal import Decimal
+from django.db import transaction
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def index(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
@@ -697,3 +703,52 @@ def order_delete(request, pk):
     update_profile_tab(request.user, 'orders', open_orders_count)
 
     return redirect(reverse('profile') + '?tab=orders')
+
+@login_required
+def recharge_balance(request):
+    if request.method == 'POST':
+        try:
+            amount = int(float(request.POST.get('amount')) * 100)
+            if amount < 100:
+                return JsonResponse({'error': 'Минимальная сумма пополнения — 1 рубль.'}, status=400)
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency='rub',
+                metadata={'user_id': request.user.id},
+                description=f'Пополнение баланса для {request.user.username}',
+            )
+            return JsonResponse({
+                'client_secret': intent.client_secret,
+                'publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+            })
+        except ValueError:
+            return JsonResponse({'error': 'Некорректная сумма.'}, status=400)
+        except stripe.error.StripeError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return render(request, 'recharge_balance.html', {
+        'STRIPE_PUBLISHABLE_KEY': settings.STRIPE_PUBLISHABLE_KEY
+    })
+
+@login_required
+def confirm_recharge(request):
+    if request.method == 'POST':
+        try:
+            payment_intent_id = request.POST.get('payment_intent_id')
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            if intent.status == 'succeeded':
+                amount = Decimal(intent.amount) / Decimal('100')  
+                with transaction.atomic():
+                    request.user.balance += amount
+                    request.user.save()
+                    Payment.objects.create(
+                        user=request.user,
+                        amount=amount,  
+                        payment_intent_id=payment_intent_id
+                    )
+                update_profile_tab(request.user, 'balance', float(request.user.balance))
+                return JsonResponse({'success': True, 'balance': float(request.user.balance)})
+            return JsonResponse({'error': 'Платёж не завершён.'}, status=400)
+        except stripe.error.StripeError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return redirect('profile')

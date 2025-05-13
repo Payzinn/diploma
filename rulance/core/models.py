@@ -15,7 +15,7 @@ class User(AbstractUser):
     email = models.EmailField("Email", unique=True)
     role = models.CharField("Роль", max_length=20, choices=ROLE_CHOICES, default='Freelancer')
     avatar = models.ImageField("Аватар", upload_to='avatars/', null=True, blank=True, default='avatars/default.png')
-    
+    balance = models.DecimalField("Баланс", max_digits=10, decimal_places=2, default=0.00)
     groups = models.ManyToManyField(
         Group,
         verbose_name='Группы',
@@ -37,6 +37,16 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_intent_id = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Платёж"
+        verbose_name_plural = "Платежи"
     
 class Sphere(models.Model):
     """
