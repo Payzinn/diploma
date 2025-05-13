@@ -54,6 +54,20 @@
     </div>
   </section>
 
+  {% if not is_own and profile_user.role == 'Freelancer' and freelancer_stats %}
+    <section class="freelancer-stats container">
+      <h2 class="page_header">Статистика</h2>
+      <div class="stats">
+        <div class="stats__item">
+          <strong>Выполненные заказы:</strong> {{ freelancer_stats.completed }}
+        </div>
+        <div class="stats__item">
+          <strong>Отменённые заказы:</strong> {{ freelancer_stats.cancelled }}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
   <!-- Заказы чужого клиента -->
   {% if profile_user.role == 'Client' and not is_own %}
     <section class="client-orders container">
@@ -108,7 +122,7 @@
         {% if profile_user.role == 'Client' %}
           <a href="?tab=orders"
              class="profile__tab {% if current_tab == 'orders' %}active{% endif %}">
-            Мои заказы <span class="profile__badge" data-tab="orders">{{ client_orders|length }}</span>
+            Мои заказы <span class="profile__badge" data-tab="orders">{{ orders_count }}</span>
           </a>
         {% endif %}
         <a href="?tab=pending"
@@ -130,52 +144,52 @@
       </div>
 
       <div class="profile__tab-content">
-        {% if current_tab == 'orders' and profile_user.role == 'Client' %}  
-        {% if open_orders %}
-        <ul class="orders-list">
-          {% for order in open_orders %}
-            <li class="order-item">
-              <h3 class="order-item__title">
-                <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
-                  {{ order.title }}
-                </a>
-                <span class="order-item__responses">
-                  <span class="order-item__count">{{ order.responses_count }}</span>
-                </span>
-              </h3>
-              <div class="order-item__meta">
-                <span>Категория:</span>
-                <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
-              </div>
-              <div class="order-item__price">
-                <span>Цена:</span>
-                {% if order.is_negotiable %}<strong>Договорная</strong>
-                {% else %}<strong>{{ order.price }} ₽</strong>{% endif %}
-              </div>
-              <div class="order-item__status">
-                <span>Статус:</span>
-                <strong>{{ order.get_status_display }}</strong>
-              </div>
-              <div class="order-item__date">
-                Создано: {{ order.created_at|date:"d.m.Y H:i" }}
-              </div>
-              <form action="{% url 'order_delete' order.pk %}"
-              method="post"
-              class="delete-order-form">
-          {% csrf_token %}
-          <button type="button"
-                  class="button-small button-small--danger js-confirm-action"
-                  data-confirm-message="Вы уверены, что хотите удалить заказ «{{ order.title }}»?">
-            Удалить
-          </button>
-        </form>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="orders__empty">У вас пока нет открытых заказов.</p>
-      {% endif %}
-      
+        {% if current_tab == 'orders' and profile_user.role == 'Client' %}
+          {% if open_orders %}
+            <ul class="orders-list">
+              {% for order in open_orders %}
+                <li class="order-item">
+                  <h3 class="order-item__title">
+                    <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+                      {{ order.title }}
+                    </a>
+                    <span class="order-item__responses">
+                      <span class="order-item__count">{{ order.responses_count }}</span>
+                    </span>
+                  </h3>
+                  <div class="order-item__meta">
+                    <span>Категория:</span>
+                    <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+                  </div>
+                  <div class="order-item__price">
+                    <span>Цена:</span>
+                    {% if order.is_negotiable %}<strong>Договорная</strong>
+                    {% else %}<strong>{{ order.price }} ₽</strong>{% endif %}
+                  </div>
+                  <div class="order-item__status">
+                    <span>Статус:</span>
+                    <strong>{{ order.get_status_display }}</strong>
+                  </div>
+                  <div class="order-item__date">
+                    Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+                  </div>
+                  <form action="{% url 'order_delete' order.pk %}"
+                        method="post"
+                        class="delete-order-form">
+                    {% csrf_token %}
+                    <button type="button"
+                            class="button-small button-small--danger js-confirm-action"
+                            data-confirm-message="Вы уверены, что хотите удалить заказ «{{ order.title }}»?">
+                      Удалить
+                    </button>
+                  </form>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="orders__empty">У вас пока нет заказов в работе.</p>
+          {% endif %}
+          
         {% elif current_tab == 'pending' %}
           {% if pending %}
             <ul class="responses-list">
@@ -352,7 +366,6 @@
         }
       );
 
-      // Обработчик сообщений WebSocket
       wsManager.registerHandler('profile_updates', (data) => {
         console.log('Получено обновление:', data);
         const tab = data.tab;

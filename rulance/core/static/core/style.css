@@ -493,6 +493,28 @@ body {
     margin: 0 auto;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
+
+  .freelancer-stats {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.stats__item {
+  font-size: 16px;
+}
+
+.stats__item strong {
+  margin-right: 5px;
+}
   
   /* Аватар */
   .profile__avatar-wrapper {

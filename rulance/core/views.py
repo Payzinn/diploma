@@ -171,7 +171,7 @@ def profile(request, pk=None):
     if profile_user.role == 'Client':
         qs = (
             Order.objects
-                 .filter(client=profile_user)
+                 .filter(client=profile_user, status='InWork')
                  .annotate(
                      responses_count=Count(
                          'responses',
@@ -189,6 +189,21 @@ def profile(request, pk=None):
                 o.user_response = resp_map.get(o.pk)
                 client_orders.append(o)
     context['client_orders'] = client_orders
+
+    # Fix: Use len() instead of count() for a Python list
+    orders_count = len(client_orders) if profile_user.role == 'Client' else 0
+
+    freelancer_stats = None
+    if not is_own and profile_user.role == 'Freelancer':
+        freelancer_stats = {
+            'completed': Response.objects.filter(
+                user=profile_user, status='Accepted', order__status='Completed'
+            ).count(),
+            'cancelled': Response.objects.filter(
+                user=profile_user, status='Accepted', order__status='Cancelled'
+            ).count(),
+        }
+    context['freelancer_stats'] = freelancer_stats
 
     if is_own:
         if profile_user.role == 'Client':
@@ -216,11 +231,9 @@ def profile(request, pk=None):
             completed = Response.objects.filter(
                 user=profile_user, status='Accepted', order__status='Completed'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
-            cancelled = Order.objects.filter(
-                responses__user=profile_user,
-                responses__status='Accepted',
-                status='Cancelled'
-            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
+            cancelled = Response.objects.filter(
+                user=profile_user, status='Accepted', order__status='Cancelled'
+            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
 
         resp_list = list(in_work) + list(completed)
         order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
@@ -249,7 +262,7 @@ def profile(request, pk=None):
         if profile_user.role == 'Client' and current_tab == 'orders':
             open_orders = (
                 Order.objects
-                     .filter(client=profile_user, status='Open')
+                     .filter(client=profile_user, status='InWork')
                      .annotate(
                          responses_count=Count(
                              'responses',
@@ -258,7 +271,9 @@ def profile(request, pk=None):
                      )
                      .select_related('sphere', 'sphere_type')
             )
-            context['open_orders'] = open_orders
+        else:
+            open_orders = []
+        context['open_orders'] = open_orders
 
         context.update({
             'tab_label': tab_label,
@@ -267,6 +282,7 @@ def profile(request, pk=None):
             'completed': completed,
             'cancelled': cancelled,
             'current_tab': current_tab,
+            'orders_count': orders_count,
         })
 
     return render(request, 'profile.html', context)
