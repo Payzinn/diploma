@@ -1,0 +1,1 @@
+regex:^(STRIPE_SECRET_KEY\s*=\s*['"])sk_test_[^'"]*(['"])$==>\1REDACTED\2

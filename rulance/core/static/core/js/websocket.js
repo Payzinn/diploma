@@ -60,17 +60,16 @@ class WebSocketManager {
                 return;
             }
 
-            if (data.type === 'profile.update' && group === 'profile') {
+            if (data.type === 'chat.message') {
                 const handler = this.handlers.get(group);
                 if (handler) {
-                    handler(data.data); 
+                    handler(data);
                 } else {
                     console.warn(`[WebSocket] Нет обработчика для группы ${group}`);
                 }
             }
         };
     }
-
     disconnect(url) {
         const socket = this.connections.get(url);
         if (socket) {

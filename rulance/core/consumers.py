@@ -4,8 +4,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocke
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 import pytz
+
 from .models import Chat, Message, Order, Notification, Response
 from .utils import update_profile_tab
 
@@ -15,7 +15,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_id = self.scope["url_route"]["kwargs"]["chat_id"]
         self.group_name = f"chat_{self.chat_id}"
-        await self.channel_layer.group_add(self.group_name, self.channel_layer)
+        # Исправлено: передаём channel_name, а не channel_layer
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -49,14 +50,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         response = Response.objects.filter(order=o, status='Accepted').first()
         if response:
             freelancer = response.user
-            client_cancelled_count = Order.objects.filter(client=client, status='Cancelled').count()
-            freelancer_cancelled_count = Response.objects.filter(
+            client_cancelled = Order.objects.filter(client=client, status='Cancelled').count()
+            freelancer_cancelled = Response.objects.filter(
                 user=freelancer, status='Accepted', order__status='Cancelled'
             ).count()
-            update_profile_tab(client, 'cancelled', client_cancelled_count)
-            update_profile_tab(freelancer, 'cancelled', freelancer_cancelled_count)
-            client_orders_count = Order.objects.filter(client=client, status='InWork').count()
-            update_profile_tab(client, 'orders', client_orders_count)
+            update_profile_tab(client, 'cancelled', client_cancelled)
+            update_profile_tab(freelancer, 'cancelled', freelancer_cancelled)
+            inwork_count = Order.objects.filter(client=client, status='InWork').count()
+            update_profile_tab(client, 'orders', inwork_count)
 
     @database_sync_to_async
     def _mark_order_completed(self, order_pk):
@@ -67,14 +68,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         response = Response.objects.filter(order=o, status='Accepted').first()
         if response:
             freelancer = response.user
-            client_completed_count = Order.objects.filter(client=client, status='Completed').count()
-            freelancer_completed_count = Response.objects.filter(
+            client_completed = Order.objects.filter(client=client, status='Completed').count()
+            freelancer_completed = Response.objects.filter(
                 user=freelancer, status='Accepted', order__status='Completed'
             ).count()
-            update_profile_tab(client, 'completed', client_completed_count)
-            update_profile_tab(freelancer, 'completed', freelancer_completed_count)
-            client_orders_count = Order.objects.filter(client=client, status='InWork').count()
-            update_profile_tab(client, 'orders', client_orders_count)
+            update_profile_tab(client, 'completed', client_completed)
+            update_profile_tab(freelancer, 'completed', freelancer_completed)
+            inwork_count = Order.objects.filter(client=client, status='InWork').count()
+            update_profile_tab(client, 'orders', inwork_count)
 
     @database_sync_to_async
     def _deactivate_chat(self, chat_id):
@@ -89,12 +90,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat = await self.get_chat()
         system = await self.get_system_user()
 
+        # Обычное сообщение
         if action == 'message':
             msg = await database_sync_to_async(Message.objects.create)(
-                chat=chat, sender=me, text=data.get('message', ''), is_system=False
+                chat=chat, sender=me, text=data.get('message',''), is_system=False
             )
             await self._send_user_message(msg, me)
-
             other = chat.freelancer if me == chat.client else chat.client
             verb = f'Новое сообщение в чате по заказу «{chat.order.title}»'
             link = reverse('chat_detail', args=[chat.pk])
@@ -103,25 +104,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             await self.channel_layer.group_send(
                 f'notifications_{other.id}',
-                {
-                    'type': 'notif_message',
-                    'data': {
-                        'id': note.id,
-                        'verb': note.verb,
-                        'link': note.get_absolute_url(),
-                        'created_at': note.created_at.astimezone(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M'),
-                    }
-                }
+                {'type': 'notif_message', 'data': {
+                    'id': note.id,
+                    'verb': note.verb,
+                    'link': note.get_absolute_url(),
+                    'created_at': note.created_at.astimezone(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M')
+                }}
             )
             return
 
+        # Запросы системы (cancel/complete)
         if action == 'cancel_request' and me == chat.client:
-            reason = data.get('reason', '')
+            reason = data.get('reason','')
             msg = await database_sync_to_async(Message.objects.create)(
                 chat=chat, sender=system,
-                text=f"Заказчик запросил отмену: «{reason}». Согласны?",
-                is_system=True,
-                extra_data={'type': 'cancel_request', 'reason': reason}
+                text=f"Заказчик запросил отмену: «{reason}». Согласны?", is_system=True,
+                extra_data={'type':'cancel_request','reason':reason}
             )
             await self._send_system_message(msg)
             return
@@ -129,37 +127,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if action == 'complete_request' and me == chat.client:
             msg = await database_sync_to_async(Message.objects.create)(
                 chat=chat, sender=system,
-                text="Заказчик считает заказ выполненным. Подтверждаете?",
-                is_system=True,
-                extra_data={'type': 'complete_request'}
+                text="Заказчик считает заказ выполненным. Подтверждаете?", is_system=True,
+                extra_data={'type':'complete_request'}
             )
             await self._send_system_message(msg)
             return
 
-        if action in ('cancel_response', 'complete_response'):
+        if action in ('cancel_response','complete_response'):
             resp = data.get('response')
             typ = 'cancel' if 'cancel' in action else 'complete'
-            text = ("Фрилансер согласен" if resp == 'yes' else "Фрилансер не согласен") + (
-                " с отменой заказа." if typ == 'cancel' else " с завершением заказа."
-            )
-            last_req = await database_sync_to_async(lambda: Message.objects.filter(
-                chat=chat,
-                is_system=True,
-                extra_data__type=f"{typ}_request",
-                extra_data__response__isnull=True
-            ).last())()
+            text = ("Фрилансер согласен" if resp=='yes' else "Фрилансер не согласен") + \
+                   (" с отменой заказа." if typ=='cancel' else " с завершением заказа.")
+            last_req = await database_sync_to_async(
+                lambda: Message.objects.filter(
+                    chat=chat, is_system=True,
+                    extra_data__type=f"{typ}_request",
+                    extra_data__response__isnull=True
+                ).last()
+            )()
             if last_req:
                 ed = last_req.extra_data or {}
                 ed['response'] = resp
                 last_req.extra_data = ed
                 await database_sync_to_async(last_req.save)()
-
             msg = await database_sync_to_async(Message.objects.create)(
-                chat=chat, sender=system, text=text,
-                is_system=True, extra_data={'type': action, 'response': resp}
+                chat=chat, sender=system, text=text, is_system=True,
+                extra_data={'type':action,'response':resp}
             )
             await self._send_system_message(msg)
-
             if resp == 'yes':
                 order_pk = chat.order.pk
                 if typ == 'cancel':
@@ -188,7 +183,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'date_readable': ts.strftime('%d.%m.%Y'),
             'is_system': True,
             'extra_data': msg.extra_data,
-            'message_type': msg.extra_data.get('type', '') if msg.extra_data else '',
+            'message_type': msg.extra_data.get('type','') if msg.extra_data else '',
         }
         await self.channel_layer.group_send(self.group_name, payload)
 
