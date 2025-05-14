@@ -46,26 +46,27 @@ class WebSocketManager {
         }
     }
 
-    attachMessageHandler(url, group) {
-    const socket = this.connections.get(url);
-    if (!socket) return;
+attachMessageHandler(url, group) {
+  const socket = this.connections.get(url);
+  if (!socket) return;
 
-    socket.onmessage = (e) => {
-        let data;
-        try {
-        data = JSON.parse(e.data);
-        } catch (err) {
-        console.error(`[WebSocket] Ошибка парсинга на ${url}:`, err);
-        return;
-        }
-        const handler = this.handlers.get(group);
-        if (handler) {
-        handler(data);
-        } else {
-        console.warn(`[WebSocket] Нет обработчика для группы ${group}`, data);
-        }
-    };
+  socket.onmessage = (e) => {
+    let data;
+    try {
+      data = JSON.parse(e.data);
+    } catch (err) {
+      console.error(`[WebSocket] Ошибка парсинга сообщения на ${url}:`, err);
+      return;
     }
+    const handler = this.handlers.get(group);
+    if (handler) {
+      handler(data);
+    } else {
+      console.warn(`[WebSocket] Нет обработчика для группы ${group}`, data);
+    }
+  };
+}
+
     disconnect(url) {
         const socket = this.connections.get(url);
         if (socket) {
