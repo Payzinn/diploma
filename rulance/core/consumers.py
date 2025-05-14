@@ -86,7 +86,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         frel.balance   += amount
         client.save()
         frel.save()
-
+        update_profile_tab(client, 'balance', float(client.balance))
+        update_profile_tab(frel,   'balance', float(frel.balance))
+        
     @database_sync_to_async
     def _deactivate_chat(self, chat_id):
         c = Chat.objects.get(pk=chat_id)

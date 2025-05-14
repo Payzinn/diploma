@@ -9,7 +9,7 @@
     <title>{% block title %}{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
     <header class="header">
         <div class="header__logo">Rulance</div>
         <nav class="header__nav">
