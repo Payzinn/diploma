@@ -68,7 +68,7 @@
     </section>
   {% endif %}
 
-  <!-- Заказы чужого клиента -->
+  <!-- Заказы другого заказчика -->
   {% if profile_user.role == 'Client' and not is_own %}
     <section class="client-orders container">
       <h2 class="page_header">
@@ -301,13 +301,29 @@
               <ul class="orders-list">
                 {% for resp in completed %}
                   <li class="order-item">
-                    <p><strong>Заказ:</strong>
-                      <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
+                    <h3 class="order-item__title">
+                      <a href="{% url 'order_detail' resp.order.pk %}" class="order-item__link">
                         {{ resp.order.title }}
                       </a>
-                    </p>
-                    <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
-                    <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
+                    </h3>
+                    <div class="order-item__meta">
+                      <span>Категория:</span>
+                      <strong>{{ resp.order.sphere.name }} → {{ resp.order.sphere_type.name }}</strong>
+                    </div>
+                    <div class="order-item__price">
+                      <span>Цена:</span>
+                      {% if resp.order.is_negotiable %}
+                        <strong>Договорная</strong>
+                      {% else %}
+                        <strong>{{ resp.order.price }} ₽</strong>
+                      {% endif %}
+                    </div>
+                    <div class="order-item__date">
+                      Создано: {{ resp.order.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                    <div class="order-item__date">
+                      Завершён: {{ resp.order.updated_at|date:"d.m.Y H:i" }}
+                    </div>
                   </li>
                 {% endfor %}
               </ul>
@@ -319,35 +335,72 @@
         {% elif current_tab == 'cancelled' %}
           {% if cancelled %}
             <ul class="orders-list">
-              {% for order in cancelled %}
-                <li class="order-item">
-                  <h3 class="order-item__title">
-                    <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
-                      {{ order.title }}
-                    </a>
-                  </h3>
-                  <div class="order-item__meta">
-                    <span>Категория:</span>
-                    <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
-                  </div>
-                  <div class="order-item__price">
-                    <span>Цена:</span>
-                    {% if order.is_negotiable %}
-                      <strong>Договорная</strong>
-                    {% else %}
-                      <strong>{{ order.price }} ₽</strong>
-                    {% endif %}
-                  </div>
-                  <div class="order-item__date">
-                    Создано: {{ order.created_at|date:"d.m.Y H:i" }}
-                  </div>
-                  {% if order.reason_of_cancel %}
-                    <div class="order-item__reason">
-                      <span>Причина отмены:</span>
-                      <strong>{{ order.reason_of_cancel }}</strong>
+              {% for item in cancelled %}
+                {% if profile_user.role == 'Client' %}
+                  <li class="order-item">
+                    <h3 class="order-item__title">
+                      <a href="{% url 'order_detail' item.pk %}" class="order-item__link">
+                        {{ item.title }}
+                      </a>
+                    </h3>
+                    <div class="order-item__meta">
+                      <span>Категория:</span>
+                      <strong>{{ item.sphere.name }} → {{ item.sphere_type.name }}</strong>
                     </div>
-                  {% endif %}
-                </li>
+                    <div class="order-item__price">
+                      <span>Цена:</span>
+                      {% if item.is_negotiable %}
+                        <strong>Договорная</strong>
+                      {% else %}
+                        <strong>{{ item.price }} ₽</strong>
+                      {% endif %}
+                    </div>
+                    <div class="order-item__date">
+                      Создано: {{ item.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                    <div class="order-item__date">
+                      Завершён: {{ item.updated_at|date:"d.m.Y H:i" }}
+                    </div>
+                    {% if item.reason_of_cancel %}
+                      <div class="order-item__reason">
+                        <span>Причина отмены:</span>
+                        <strong>{{ item.reason_of_cancel }}</strong>
+                      </div>
+                    {% endif %}
+                  </li>
+                {% else %}
+                  <li class="order-item">
+                    <h3 class="order-item__title">
+                      <a href="{% url 'order_detail' item.order.pk %}" class="order-item__link">
+                        {{ item.order.title }}
+                      </a>
+                    </h3>
+                    <div class="order-item__meta">
+                      <span>Категория:</span>
+                      <strong>{{ item.order.sphere.name }} → {{ item.order.sphere_type.name }}</strong>
+                    </div>
+                    <div class="order-item__price">
+                      <span>Цена:</span>
+                      {% if item.order.is_negotiable %}
+                        <strong>Договорная</strong>
+                      {% else %}
+                        <strong>{{ item.order.price }} ₽</strong>
+                      {% endif %}
+                    </div>
+                    <div class="order-item__date">
+                      Создано: {{ item.order.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                    <div class="order-item__date">
+                      Завершён: {{ item.updated_at|date:"d.m.Y H:i" }}
+                    </div>
+                    {% if item.order.reason_of_cancel %}
+                      <div class="order-item__reason">
+                        <span>Причина отмены:</span>
+                        <strong>{{ item.order.reason_of_cancel }}</strong>
+                      </div>
+                    {% endif %}
+                  </li>
+                {% endif %}
               {% endfor %}
             </ul>
           {% else %}
@@ -367,7 +420,6 @@
       const wsManager = WebSocketManager;
       const profileWsUrl = '/ws/profile/';
 
-      // Подключение к WebSocket
       wsManager.connect(
         profileWsUrl,
         () => {
