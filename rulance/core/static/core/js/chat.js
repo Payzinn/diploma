@@ -22,6 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   WSManager.registerHandler(groupName, data => {
+    if (data.type === 'chat.update') {
+      const actionsDiv = document.querySelector('.chat__actions');
+      if (actionsDiv && data.status !== 'InWork') {
+        actionsDiv.style.display = 'none';
+      }
+      return;
+    }
+
     if (data.date !== lastDate) {
       const sep = document.createElement('div');
       sep.className = 'chat__date-separator';
@@ -60,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const form = document.getElementById('chat-form');
           if (form) {
             form.outerHTML = '<p class="chat__form">Чат завершён, отправка сообщений невозможна.</p>';
+          }
+          const actionsDiv = document.querySelector('.chat__actions');
+          if (actionsDiv) {
+            actionsDiv.style.display = 'none';
           }
         }
       }

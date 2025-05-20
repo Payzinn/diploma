@@ -610,6 +610,16 @@ def order_complete(request, order_id):
     if chat:
         chat.is_active = False
         chat.save()
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{chat.pk}",
+            {
+                'type': 'chat.update',
+                'status': order.status,
+                'is_active': chat.is_active,
+                'order_title': order.title
+            }
+        )
 
     client_completed = Order.objects.filter(
         client=order.client, status='Completed'
@@ -643,6 +653,16 @@ def order_cancel(request, order_id):
         if chat:
             chat.is_active = False
             chat.save()
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"chat_{chat.pk}",
+                {
+                    'type': 'chat.update',
+                    'status': order.status,
+                    'is_active': chat.is_active,
+                    'order_title': order.title
+                }
+            )
         
         client_count = Order.objects.filter(client=order.client, status='Cancelled').count()
         update_profile_tab(order.client, 'cancelled', client_count)

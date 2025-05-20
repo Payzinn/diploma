@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocke
 from channels.db import database_sync_to_async
 
 from django.contrib.auth import get_user_model
-from .models import Chat, Message, Order, Notification, Response
+from .models import Chat, Message, Order, Notification, Response, User
 from .utils import update_profile_tab
 
 User = get_user_model()
@@ -48,16 +48,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         o.status = 'Cancelled'
         o.reason_of_cancel = reason
         o.save()
-        # обновляем табы профилей
         client = o.client
         resp = Response.objects.filter(order=o, status='Accepted').first()
         if resp:
             frel = resp.user
             update_profile_tab(client, 'cancelled', Order.objects.filter(client=client, status='Cancelled').count())
-            update_profile_tab(frel,   'cancelled', Response.objects.filter(
+            update_profile_tab(frel, 'cancelled', Response.objects.filter(
                 user=frel, status='Accepted', order__status='Cancelled'
             ).count())
-        # и обновляем количество "В работе" у клиента
         update_profile_tab(client, 'orders', Order.objects.filter(client=client, status='InWork').count())
 
     @database_sync_to_async
@@ -70,7 +68,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if resp:
             frel = resp.user
             update_profile_tab(client, 'completed', Order.objects.filter(client=client, status='Completed').count())
-            update_profile_tab(frel,   'completed', Response.objects.filter(
+            update_profile_tab(frel, 'completed', Response.objects.filter(
                 user=frel, status='Accepted', order__status='Completed'
             ).count())
         update_profile_tab(client, 'orders', Order.objects.filter(client=client, status='InWork').count())
@@ -87,7 +85,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         client.save()
         frel.save()
         update_profile_tab(client, 'balance', float(client.balance))
-        update_profile_tab(frel,   'balance', float(frel.balance))
+        update_profile_tab(frel, 'balance', float(frel.balance))
         
     @database_sync_to_async
     def _deactivate_chat(self, chat_id):
@@ -111,7 +109,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat   = await self.get_chat()
         system = await self.get_system_user()
 
-        # 1) Обычное сообщение
         if action == 'message':
             msg = await database_sync_to_async(Message.objects.create)(
                 chat=chat, sender=user, text=data.get('message',''), is_system=False
@@ -135,7 +132,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             return
 
-        # 2) Запрос отмены
         if action == 'cancel_request' and user == chat.client:
             reason = data.get('reason','')
             msg = await database_sync_to_async(Message.objects.create)(
@@ -147,12 +143,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self._send_system_message(msg)
             return
 
-        # 3) Запрос завершения — проверяем баланс по accepted_response
         if action == 'complete_request' and user == chat.client:
             resp  = await self.get_accepted_response(chat.order.pk, chat.freelancer.pk)
             price = resp.responser_price
             if not await self._has_funds(user.id, float(price)):
-                # отправим в JS ошибку
                 await self.send(text_data=json.dumps({
                     'type':    'chat.error',
                     'message': 'Недостаточно средств на балансе для завершения заказа.'
@@ -167,7 +161,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self._send_system_message(msg)
             return
 
-        # 4) Ответ фрилансера на cancel/complete
         if action in ('cancel_response','complete_response'):
             resp_flag = data.get('response')
             typ       = 'cancel' if 'cancel' in action else 'complete'
@@ -191,7 +184,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             await self._send_system_message(msg)
 
-            # если фрилансер согласился
             if resp_flag == 'yes':
                 order_pk = chat.order.pk
                 if typ == 'cancel':
@@ -201,11 +193,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     await self._mark_order_completed(order_pk)
                     await self._transfer_funds(order_pk)
                 await self._deactivate_chat(self.chat_id)
+                chat = await self.get_chat() 
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        'type': 'chat.update',
+                        'status': chat.order.status,
+                        'is_active': chat.is_active,
+                        'order_title': chat.order.title
+                    }
+                )
             return
 
     async def chat_message(self, event):
-        # просто шлём сразу полученный payload
         await self.send(text_data=json.dumps(event))
+
+    async def chat_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'chat.update',
+            'status': event['status'],
+            'is_active': event['is_active'],
+            'order_title': event['order_title']
+        }))
 
     async def _send_system_message(self, msg: Message):
         tz = pytz.timezone('Europe/Moscow')
