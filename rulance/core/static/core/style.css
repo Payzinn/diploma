@@ -1923,6 +1923,7 @@ empty-state
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s, box-shadow 0.2s;
+  width: 120px;
 }
 .chat__form .button:hover {
   background-color: #2563EB;

@@ -150,6 +150,7 @@ def switch_role(request):
     return redirect('index')
 
 
+@login_required
 def profile(request, pk=None):
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
@@ -174,7 +175,7 @@ def profile(request, pk=None):
     }
 
     client_orders = []
-    if profile_user.role == 'Client':
+    if profile_user.role == 'Client' and not is_own:
         qs = (
             Order.objects
                  .filter(client=profile_user, status='InWork')
@@ -186,18 +187,14 @@ def profile(request, pk=None):
                  )
                  .select_related('sphere', 'sphere_type')
         )
-        if is_own or request.user.role != 'Freelancer':
-            client_orders = list(qs)
-        else:
-            my_resps = Response.objects.filter(order__client=profile_user, user=request.user)
-            resp_map = {r.order_id: r for r in my_resps}
-            for o in qs:
-                o.user_response = resp_map.get(o.pk)
-                client_orders.append(o)
+        my_resps = Response.objects.filter(order__client=profile_user, user=request.user)
+        resp_map = {r.order_id: r for r in my_resps}
+        for o in qs:
+            o.user_response = resp_map.get(o.pk)
+            client_orders.append(o)
     context['client_orders'] = client_orders
 
-    # Fix: Use len() instead of count() for a Python list
-    orders_count = len(client_orders) if profile_user.role == 'Client' else 0
+    orders_count = len(client_orders) if profile_user.role == 'Client' and not is_own else 0
 
     freelancer_stats = None
     if not is_own and profile_user.role == 'Freelancer':
@@ -214,8 +211,19 @@ def profile(request, pk=None):
     if is_own:
         if profile_user.role == 'Client':
             tab_label = 'Отклики исполнителей'
+            open_orders = (
+                Order.objects
+                     .filter(client=profile_user, status='Open')
+                     .annotate(
+                         responses_count=Count(
+                             'responses',
+                             filter=Q(responses__status='Pending')
+                         )
+                     )
+                     .select_related('sphere', 'sphere_type')
+            )
             pending = Response.objects.filter(
-                order__client=profile_user, status='Pending'
+                order__client=profile_user, status='Pending', order__status="Open"
             ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
             in_work = Response.objects.filter(
                 order__client=profile_user, status='Accepted', order__status='InWork'
@@ -228,6 +236,7 @@ def profile(request, pk=None):
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
         else:
             tab_label = 'Мои отклики'
+            open_orders = []  
             pending = Response.objects.filter(
                 user=profile_user, status='Pending'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
@@ -265,22 +274,6 @@ def profile(request, pk=None):
         if current_tab not in ('orders', 'pending', 'in_work', 'completed', 'cancelled'):
             current_tab = default_tab
 
-        if profile_user.role == 'Client' and current_tab == 'orders':
-            open_orders = (
-                Order.objects
-                     .filter(client=profile_user, status='InWork')
-                     .annotate(
-                         responses_count=Count(
-                             'responses',
-                             filter=Q(responses__status='Pending')
-                         )
-                     )
-                     .select_related('sphere', 'sphere_type')
-            )
-        else:
-            open_orders = []
-        context['open_orders'] = open_orders
-
         context.update({
             'tab_label': tab_label,
             'pending': pending,
@@ -288,7 +281,8 @@ def profile(request, pk=None):
             'completed': completed,
             'cancelled': cancelled,
             'current_tab': current_tab,
-            'orders_count': orders_count,
+            'open_orders': open_orders,  
+            'orders_count': len(open_orders) if profile_user.role == 'Client' and is_own else orders_count,
         })
 
     return render(request, 'profile.html', context)
@@ -302,9 +296,6 @@ def response_reject(request, pk):
 
 @login_required
 def portfolio_create(request):
-    """
-    Создание портфолио. Если уже есть — редиректим в профиль.
-    """
     if hasattr(request.user, 'portfolio'):
         return redirect('profile')
 
@@ -343,9 +334,6 @@ def portfolio_detail(request, pk):
 
 @login_required
 def portfolio_update(request):
-    """
-    Редактирование портфолио. Если нет — 403 Forbidden.
-    """
     if not hasattr(request.user, 'portfolio'):
         raise PermissionDenied
 
@@ -378,7 +366,6 @@ def make_order(request):
             order.save()
             for f in request.FILES.getlist('files'):
                 OrderFile.objects.create(order=order, file=f)
-            # Обновляем вкладку "orders" для клиента
             count = Order.objects.filter(client=request.user).count()
             update_profile_tab(request.user, 'orders', count)
             return redirect(reverse('make_order') + '?status=success')

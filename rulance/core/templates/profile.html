@@ -122,7 +122,7 @@
         {% if profile_user.role == 'Client' %}
           <a href="?tab=orders"
              class="profile__tab {% if current_tab == 'orders' %}active{% endif %}">
-            Мои заказы <span class="profile__badge" data-tab="orders">{{ orders_count }}</span>
+            Мои заказы <span class="profile__badge" data-tab="orders">{{ open_orders|length }}</span>
           </a>
         {% endif %}
         <a href="?tab=pending"
@@ -272,6 +272,21 @@
                         {{ order.title }}
                       </a>
                     </h3>
+                    <div class="order-item__meta">
+                      <span>Категория:</span>
+                      <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+                    </div>
+                    <div class="order-item__price">
+                      <span>Цена:</span>
+                      {% if order.is_negotiable %}
+                        <strong>Договорная</strong>
+                      {% else %}
+                        <strong>{{ order.price }} ₽</strong>
+                      {% endif %}
+                    </div>
+                    <div class="order-item__date">
+                      Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+                    </div>
                     <div class="order-item__date">
                       Завершён: {{ order.updated_at|date:"d.m.Y H:i" }}
                     </div>

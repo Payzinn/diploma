@@ -49,9 +49,6 @@ class Payment(models.Model):
         verbose_name_plural = "Платежи"
     
 class Sphere(models.Model):
-    """
-    Модель для категорий (например, Разработка, Дизайн, Маркетинг).
-    """
     name = models.CharField("Название категории", max_length=255)
 
     class Meta:
@@ -63,9 +60,6 @@ class Sphere(models.Model):
 
 
 class SphereType(models.Model):
-    """
-    Модель для подкатегорий (например, Сайты под ключ, Бэкенд и т.д.).
-    """
     sphere = models.ForeignKey(Sphere, on_delete=models.CASCADE, verbose_name="Категория")
     name = models.CharField("Название подкатегории", max_length=255)
 
@@ -116,6 +110,7 @@ class Order(models.Model):
     )
     reason_of_cancel = models.TextField(null=True, blank=True)
     client = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Заказчик")
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Заказ"
@@ -175,9 +170,6 @@ class Portfolio(models.Model):
         return f'Портфолио {self.user.username}'
     
 def order_file_path(instance, filename):
-    """
-    Генерирует уникальное имя файла в подпапке order_files/
-    """
     ext = filename.split('.')[-1].lower()
     filename = f"{uuid.uuid4().hex}.{ext}"
     return os.path.join('order_files', filename)
@@ -261,7 +253,6 @@ class Notification(models.Model):
             return self.link
         
 class Chat(models.Model):
-    """Чат, привязанный к заказу и отклику"""
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='chats')
     freelancer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='freelancer_chats')
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='client_chats')
@@ -272,7 +263,6 @@ class Chat(models.Model):
         return f"Chat {self.order.id} between {self.client} and {self.freelancer}"
 
 class Message(models.Model):
-    """Сообщение в чате"""
     SYSTEM = 'system'
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
