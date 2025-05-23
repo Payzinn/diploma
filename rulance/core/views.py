@@ -196,6 +196,7 @@ def profile(request, pk=None):
     orders_count = len(client_orders) if profile_user.role == 'Client' and not is_own else 0
 
     freelancer_stats = None
+    reviews = None
     if not is_own and profile_user.role == 'Freelancer':
         freelancer_stats = {
             'completed': Response.objects.filter(
@@ -205,7 +206,9 @@ def profile(request, pk=None):
                 user=profile_user, status='Accepted', order__status='Cancelled'
             ).count(),
         }
-    context['freelancer_stats'] = freelancer_stats
+        reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
+        context['freelancer_stats'] = freelancer_stats
+        context['reviews'] = reviews
 
     if is_own:
         if profile_user.role == 'Client':
@@ -250,6 +253,9 @@ def profile(request, pk=None):
             cancelled = Response.objects.filter(
                 user=profile_user, status='Accepted', order__status='Cancelled'
             ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+            if profile_user.role == 'Freelancer':
+                reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
+                context['reviews'] = reviews
 
         resp_list = list(in_work) + list(completed)
         order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
@@ -270,9 +276,14 @@ def profile(request, pk=None):
             for r in resp_list:
                 r.chat = chat_map.get(r.order_id if isinstance(r, Response) else r.pk)
 
+        if profile_user.role == 'Client':
+            allowed_tabs = ['orders', 'pending', 'in_work', 'completed', 'cancelled']
+        else:
+            allowed_tabs = ['pending', 'in_work', 'completed', 'cancelled', 'reviews']
+
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
-        if current_tab not in ('orders', 'pending', 'in_work', 'completed', 'cancelled'):
+        if current_tab not in allowed_tabs:
             current_tab = default_tab
 
         context.update({

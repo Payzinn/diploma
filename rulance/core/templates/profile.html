@@ -66,6 +66,36 @@
         </div>
       </div>
     </section>
+    {% if profile_user.role == 'Freelancer' %}
+      <section class="freelancer-reviews container">
+        <h2 class="page_header">Отзывы</h2>
+        {% if reviews %}
+          <ul class="reviews-list">
+            {% for review in reviews %}
+              <li class="review-item">
+                <p class="review-item__order">
+                  Заказ: <a href="{% url 'order_detail' review.order.pk %}">{{ review.order.title }}</a>
+                </p>
+                <p class="review-item__client">
+                  Клиент: <a href="{% url 'profile_detail' review.client.pk %}">{{ review.client.username }}</a>
+                </p>
+                <p class="review-item__rating">
+                  Оценка: <span>{{ review.get_rating_display }}</span>
+                </p>
+                <p class="review-item__text">
+                  {{ review.text }}
+                </p>
+                <p class="review-item__date">
+                  Дата: <span>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                </p>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Нет отзывов.</p>
+        {% endif %}
+      </section>
+    {% endif %}
   {% endif %}
 
   <!-- Заказы другого заказчика -->
@@ -141,6 +171,12 @@
            class="profile__tab {% if current_tab == 'cancelled' %}active{% endif %}">
           Отменённые <span class="profile__badge" data-tab="cancelled">{{ cancelled.count }}</span>
         </a>
+        {% if profile_user.role == 'Freelancer' %}
+          <a href="?tab=reviews"
+             class="profile__tab {% if current_tab == 'reviews' %}active{% endif %}">
+            Отзывы <span class="profile__badge" data-tab="reviews">{{ reviews.count }}</span>
+          </a>
+        {% endif %}
       </div>
 
       <div class="profile__tab-content">
@@ -192,34 +228,45 @@
           
         {% elif current_tab == 'pending' %}
           {% if pending %}
-            <ul class="responses-list">
+            <ul class="orders-list">
               {% for resp in pending %}
-                <li class="order-item">
+                <li class="order-item gap">
+                    <h3 class="order-item__title">
+                      <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
+                        wetwe
+                      </a>
+                    </h3>
                   {% if profile_user.role == 'Client' %}
-                    <p><strong>Фрилансер:</strong>
+                  <div class="order-item__status">
+                    <span>Фрилансер:</span>
+                    <strong>                        
                       <a href="{% url 'profile_detail' resp.user.pk %}" class="profile__link">
                         {{ resp.user.full_name|default:resp.user.username }}
                       </a>
-                    </p>
+                    </strong>
+                  </div>
                   {% else %}
-                    <p><strong>Заказчик:</strong>
+                  <div class="order-item__status">
+                    <span>Заказчик:</span>
+                    <strong>                        
                       <a href="{% url 'profile_detail' resp.order.client.pk %}" class="profile__link">
                         {{ resp.order.client.full_name|default:resp.order.client.username }}
                       </a>
-                    </p>
+                    </strong>
+                  </div>
                   {% endif %}
-                  <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
-                      {{ resp.order.title }}
-                    </a>
-                  </p>
-                  <div class="response-actions">
-                    <p><strong>Отклик:</strong>
+
+                  <div class="order-item__status">
+                    <span>Отклик:</span>
+                    <strong>                        
                       <a href="{% url 'response_detail' resp.pk %}" class="profile__link">
                         Посмотреть отклик
                       </a>
-                    </p>
-                    <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
+                    </strong>
+                  </div>
+                  <div class="order-item__status">
+                    <span>Статус:</span>
+                    <strong>{{ resp.get_status_display }}</strong>
                   </div>
                 </li>
               {% endfor %}
@@ -236,21 +283,25 @@
 
         {% elif current_tab == 'in_work' %}
           {% if in_work %}
-            <ul class="responses-list">
+            <ul class="orders-list">
               {% for resp in in_work %}
-                <li class="order-item">
-                  <p><strong>Заказ:</strong>
-                    <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
+                <li class="order-item gap">
+                  <h3 class="order-item__title">
+                    <a href="{% url 'order_detail' resp.order.pk %}" class="order-item__link">
                       {{ resp.order.title }}
                     </a>
-                  </p>
-                  <p><strong>Чат:</strong>
+                  </h3>
+
+                  <div class="order-item__status">
+                  <span>Чат:</span>
                     {% if resp.chat %}
+                    <strong>                        
                       <a href="{% url 'chat_detail' resp.chat.pk %}" class="profile__link">Перейти в чат</a>
+                    </strong>
                     {% else %}
-                      Чат не создан
+                      <p>Чат не создан</p>
                     {% endif %}
-                  </p>
+                  </div>
                   <p><strong>Срок:</strong> {{ resp.term }} дн.</p>
                   <p><strong>Цена:</strong> {{ resp.responser_price }} ₽</p>
                   <p><strong>Статус:</strong> {{ resp.get_status_display }}</p>
@@ -412,6 +463,33 @@
             </ul>
           {% else %}
             <p class="empty-state text-center">Нет отменённых заказов.</p>
+          {% endif %}
+
+        {% elif current_tab == 'reviews' and profile_user.role == 'Freelancer' %}
+          {% if reviews %}
+            <ul class="orders-list">
+              {% for review in reviews %}
+                <li class="order-item">
+                  <h3 class="order-item__title">
+                    <a href="{% url 'order_detail' review.order.pk %}" class="order-item__link">{{ review.order.title }}</a>
+                  </h3>
+                  <p class="review-item__client">
+                    Клиент: <a href="{% url 'profile_detail' review.client.pk %}" class="order-item__link">{{ review.client.full_name }}</a>
+                  </p>
+                  <p class="review-item__rating">
+                    Оценка: <span>{{ review.get_rating_display }}</span>
+                  </p>
+                  <p class="review-item__text">
+                    {{ review.text }}
+                  </p>
+                  <p class="review-item__date">
+                    Дата: <span>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                  </p>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>Нет отзывов.</p>
           {% endif %}
         {% endif %}
       </div>
