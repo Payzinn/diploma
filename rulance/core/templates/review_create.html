@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Оставить отзыв – {{ order.title }}{% endblock %}
+
+{% block content %}
+<section class="container review-create">
+  <h2 class="page_header">Оставить отзыв на заказ «{{ order.title }}»</h2>
+  <p class="review-create__freelancer">
+    Фрилансер: 
+    <a href="{% url 'profile_detail' freelancer.pk %}" class="profile__link">
+      {{ freelancer.full_name|default:freelancer.username }}
+    </a>
+  </p>
+
+  <form method="post" class="review-create__form">
+    {% csrf_token %}
+
+    <div class="form-group review-create__group">
+      <span class="form-label">Оценка:</span>
+      <div class="review-create__rating">
+        {% for radio in form.rating %}
+        <label class="checkbox-btn">
+          {{ radio.tag }}<span class="checkbox-btn__label">{{ radio.choice_label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.rating.errors %}
+        <p class="error-message">{{ form.rating.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="form-group review-create__group">
+      <label for="id_text" class="form-label">Текст отзыва:</label>
+      {{ form.text }}
+      {% if form.text.errors %}
+        <p class="error-message">{{ form.text.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="review-create__actions">
+      <button type="submit" class="button-submit">Отправить отзыв</button>
+      <a href="{% url 'profile' %}" class="button-reset">Отмена</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.checkbox-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const siblings = btn.parentNode.querySelectorAll('.checkbox-btn');
+      siblings.forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const input = btn.querySelector('input[type="radio"]');
+      if (input) input.checked = true;
+    });
+  });
+});
+</script>
+{% endblock %}

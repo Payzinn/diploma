@@ -111,6 +111,7 @@ class Order(models.Model):
     reason_of_cancel = models.TextField(null=True, blank=True)
     client = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Заказчик")
     updated_at = models.DateTimeField(auto_now=True)
+    has_review = models.BooleanField("Отзыв оставлен", default=False)
 
     class Meta:
         verbose_name = "Заказ"
@@ -276,3 +277,40 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender} @ {self.timestamp:%Y-%m-%d %H:%M}"
+    
+class Review(models.Model):
+    RATING_CHOICES = [
+        ('Bad', 'Плохо'),
+        ('Average', 'Средне'),
+        ('Excellent', 'Отлично'),
+    ]
+
+    order = models.OneToOneField(
+        'Order',
+        on_delete=models.CASCADE,
+        related_name='review',
+        verbose_name='Заказ'
+    )
+    freelancer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews_received',
+        verbose_name='Фрилансер',
+        
+    )
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews_given',  
+        verbose_name='Клиент'
+    )
+    rating = models.CharField('Оценка', max_length=10, choices=RATING_CHOICES)
+    text = models.TextField('Текст отзыва')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
+
+    def __str__(self):
+        return f'Отзыв на заказ {self.order.title} от {self.client.username} для {self.freelancer.username}'

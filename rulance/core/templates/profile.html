@@ -290,6 +290,13 @@
                     <div class="order-item__date">
                       Завершён: {{ order.updated_at|date:"d.m.Y H:i" }}
                     </div>
+                    <div class="order-item__actions">
+                      {% if not order.has_review and order.has_accepted_response %}
+                        <a href="{% url 'review_create' order.pk %}" class="button-small">Оставить отзыв</a>
+                      {% else %}
+                        <span>Отзыв оставлен</span>
+                      {% endif %}
+                    </div>
                   </li>
                 {% endfor %}
               </ul>

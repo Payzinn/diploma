@@ -4,8 +4,8 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
-from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment
-from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm
+from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment, Review
+from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm, ReviewForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
 from django.http import JsonResponse, Http404
@@ -150,7 +150,6 @@ def switch_role(request):
     return redirect('index')
 
 
-@login_required
 def profile(request, pk=None):
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
@@ -231,6 +230,8 @@ def profile(request, pk=None):
             completed = Order.objects.filter(
                 client=profile_user, status='Completed'
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
+            for order in completed:
+                order.has_accepted_response = order.responses.filter(status='Accepted').exists()
             cancelled = Order.objects.filter(
                 client=profile_user, status='Cancelled'
             ).select_related('sphere', 'sphere_type').prefetch_related('responses')
@@ -759,3 +760,34 @@ def confirm_recharge(request):
         except stripe.error.StripeError as e:
             return JsonResponse({'error': str(e)}, status=400)
     return redirect('profile')
+
+@login_required
+def review_create(request, order_id):
+    order = get_object_or_404(Order, pk=order_id, client=request.user, status='Completed')
+    accepted_responses = Response.objects.filter(order=order, status='Accepted')
+    if accepted_responses.count() != 1:
+        messages.error(request, 'Ошибка: заказ имеет некорректное количество принятых откликов.')
+        return redirect('profile')
+    freelancer = accepted_responses.first().user
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.order = order
+            review.freelancer = freelancer
+            review.client = request.user  
+            review.save()
+            order.has_review = True  
+            order.save()
+            messages.success(request, 'Отзыв успешно отправлен.')
+            return redirect('profile')
+    else:
+        form = ReviewForm()
+
+    context = {
+        'form': form,
+        'order': order,
+        'freelancer': freelancer,
+    }
+    return render(request, 'review_create.html', context)

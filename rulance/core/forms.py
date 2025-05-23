@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Portfolio, Order, SphereType, Response, Message
+from .models import User, Portfolio, Order, SphereType, Response, Message, Review
 from django.core.exceptions import ValidationError
 
 class UserRegisterForm(UserCreationForm):
@@ -204,3 +204,20 @@ class MessageForm(forms.ModelForm):
             }),
         }
         labels = {'text': ''}
+
+class ReviewForm(forms.ModelForm):
+    rating = forms.ChoiceField(
+        choices=Review.RATING_CHOICES,    
+        widget=forms.RadioSelect,
+        required=True,                    
+        label='Оценка'
+    )
+    class Meta:
+        model = Review
+        fields = ['rating', 'text']
+        widgets = {
+            'text': forms.Textarea(attrs={'rows': 4}),
+        }
+        labels = {
+            'text': 'Текст отзыва',
+        }

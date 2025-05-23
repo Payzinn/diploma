@@ -2083,3 +2083,137 @@ empty-state
 .button:hover {
     background-color: #0056b3;
 }
+
+/* === REVIEW CREATE === */
+.review-create {
+  margin-bottom: 50px;
+}
+.review-create__freelancer {
+  margin-bottom: 24px;
+  text-align: center;
+  color: #F3F4F6;
+}
+.review-create__freelancer .profile__link {
+  color: #3B82F6;
+  text-decoration: none;
+}
+.review-create__freelancer .profile__link:hover {
+  color: #2563EB;
+}
+
+/* Форма */
+.review-create__form {
+  background: #252D2E;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+.review-create__group {
+  margin-bottom: 20px;
+}
+.form-label {
+  display: block;
+  color: #E5E7EB;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* === РАДИО В ВИДЕ КНОПОК === */
+.review-create__rating {
+  display: flex;
+  gap: 12px;
+}
+.checkbox-btn {
+  position: relative;
+  padding: 8px 16px;
+  background: #2C3334;
+  color: #A1A1AA;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+}
+/* скрываем дефолтный input */
+.checkbox-btn input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.checkbox-btn__label {
+  margin-left: 8px;
+}
+/* hover */
+.checkbox-btn:hover {
+  background: #3A3F46;
+}
+/* активное состояние */
+.checkbox-btn.active {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Текстовое поле */
+#id_text {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  color: #F3F4F6;
+  background-color: #2C3334;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#id_text:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+}
+
+/* Кнопки */
+.review-create__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.button-submit {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.button-submit:hover {
+  background-color: #2563EB;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.button-reset {
+  background-color: #6B7280;
+  color: #FFFFFF;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.button-reset:hover {
+  background-color: #4B5563;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.error-message {
+  color: #EF4444;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
