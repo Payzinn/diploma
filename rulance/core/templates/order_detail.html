@@ -29,11 +29,11 @@
         </div>
         <div class="order-detail__row">
           <dt class="order-detail__term">Статус:</dt>
-          <dd class="order-detail__desc">{{ order.status }}</dd>
+          <dd class="order-detail__desc">{{ order.get_status_display }}</dd>
         </div>
         <div class="order-detail__row">
           <dt class="order-detail__term">Заказчик:</dt>
-          <dd class="order-detail__desc">{{ order.client.username }}</dd>
+          <dd class="order-detail__desc">{{ order.client.full_name }}</dd>
         </div>
         <div class="order-detail__row">
           <dt class="order-detail__term">Создано:</dt>
