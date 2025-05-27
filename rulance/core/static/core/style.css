@@ -25,6 +25,17 @@ body {
     color: #FFFFFF;
     font-family: 'Roboto', sans-serif;
 }
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+.login-page__errors {
+  margin-top: 1rem;
+}
+
 /* Header */
 .header {
   background-color: #090E0F;

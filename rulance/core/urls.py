@@ -3,12 +3,13 @@ from django.contrib.auth.views import LoginView, LogoutView
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .forms import *
 urlpatterns = [
     path('', views.index, name='index'),
     path('orders/', views.orders, name='orders'),
     path('freelancers/', views.freelancers, name='freelancers'),
     path('register/', views.register, name='register'),
-    path('login/', LoginView.as_view(template_name='login.html', success_url='/profile/'), name='login'),
+    path('login/', LoginView.as_view(template_name='login.html', success_url='/profile/', authentication_form=CustomAuthenticationForm), name='login'),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('switch-role/', views.switch_role, name='switch_role'),
     path('profile/', views.profile, name='profile'),

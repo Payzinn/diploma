@@ -2,6 +2,12 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, Portfolio, Order, SphereType, Response, Message, Review
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import AuthenticationForm
+
+class CustomAuthenticationForm(AuthenticationForm):
+    error_messages = {
+        'invalid_login': "Неверное имя пользователя или пароль."
+    }
 
 class UserRegisterForm(UserCreationForm):
     full_name = forms.CharField(label="ФИО", max_length=100)

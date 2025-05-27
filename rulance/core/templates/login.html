@@ -14,7 +14,12 @@
         placeholder="Логин"
         class="login-page__input"
         required
+        value="{{ form.data.username|default:'' }}"
       >
+      {% if form.errors.username %}
+        <p class="error-message">{{ form.errors.username.0 }}</p>
+      {% endif %}
+
       <input
         type="password"
         name="password"
@@ -22,6 +27,18 @@
         class="login-page__input"
         required
       >
+      {% if form.errors.password %}
+        <p class="error-message">{{ form.errors.password.0 }}</p>
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="login-page__errors">
+          {% for error in form.non_field_errors %}
+            <p class="error-message">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       <button type="submit" class="login-page__btn">
         Войти
       </button>
@@ -34,4 +51,10 @@
     </p>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_css %}
+  <style>
+
+  </style>
 {% endblock %}
