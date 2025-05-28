@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
 from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment, Review
-from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm, ReviewForm
+from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm, ReviewForm, FreelancerFilterForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
 from django.http import JsonResponse, Http404
@@ -26,16 +26,25 @@ def index(request):
     return render(request, 'index.html', {'spheres': spheres})
 
 def freelancers(request):
-    spheres      = Sphere.objects.all()
+    spheres = Sphere.objects.all()
     sphere_types = SphereType.objects.all()
     qs = User.objects.filter(
         role='Freelancer',
         portfolio__isnull=False
     ).select_related('portfolio')
 
-    paginator   = Paginator(qs, 10)
+    sphere_id = request.GET.get('sphere')
+    sphere_types_ids = request.GET.getlist('sphere_types')
+
+    if sphere_id:
+        qs = qs.filter(portfolio__sphere_id=sphere_id)
+
+    if sphere_types_ids:
+        qs = qs.filter(portfolio__sphere_type_id__in=sphere_types_ids)
+
+    paginator = Paginator(qs, 10)
     page_number = request.GET.get('page') or 1
-    page_obj    = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
 
     elided_range = paginator.get_elided_page_range(
         number=page_obj.number,
@@ -47,12 +56,18 @@ def freelancers(request):
     params.pop('page', None)
     get_params = params.urlencode()
 
+    filter_context = {
+        'sphere_id': sphere_id or '',
+        'sphere_types_ids': [int(id) for id in sphere_types_ids] if sphere_types_ids else [],
+    }
+
     return render(request, 'freelancers.html', {
         'freelancers': page_obj,
         'spheres': spheres,
         'sphere_types': sphere_types,
         'page_range': elided_range,
         'get_params': get_params,
+        'filter': filter_context,
     })
 
 def orders(request):

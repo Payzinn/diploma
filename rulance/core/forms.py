@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Portfolio, Order, SphereType, Response, Message, Review
+from .models import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
 
@@ -227,3 +227,35 @@ class ReviewForm(forms.ModelForm):
         labels = {
             'text': 'Текст отзыва',
         }
+
+class FreelancerFilterForm(forms.Form):
+    sphere = forms.ModelChoiceField(
+        queryset=Sphere.objects.all(),
+        label='Сфера',
+        empty_label=None,
+        widget=forms.RadioSelect(attrs={'class': 'freelancers_control__toggle-btn'}),
+    )
+    sphere_types = forms.ModelMultipleChoiceField(
+        queryset=SphereType.objects.all(),
+        label='Подсферы',
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'freelancers_control__toggle-btn freelancers_control__toggle-btn--small'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': field.widget.attrs.get('class', '') + ' form-item'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        sphere = cleaned_data.get('sphere')
+        sphere_types = cleaned_data.get('sphere_types')
+
+        if not sphere and not sphere_types:
+            raise forms.ValidationError('Выберите хотя бы одну сферу или подсферу.')
+
+        if sphere_types and not any(st.sphere == sphere for st in sphere_types):
+            raise forms.ValidationError('Выбранные подсферы должны соответствовать выбранной сфере.')
+
+        return cleaned_data

@@ -7,55 +7,49 @@
 <section class="container freelancers">
   <h2 class="page_header">Фрилансеры</h2>
 
-  {% if freelancers.has_other_pages %}
-  <div class="pagination">
-    {% for p in page_range %}
-      {% if p == '…' %}
-        <span class="pagination__ellipsis">…</span>
-      {% elif p == freelancers.number %}
-        <span class="pagination__current">{{ p }}</span>
-      {% else %}
-        <a href="?page={{ p }}{% if get_params %}&{{ get_params }}{% endif %}"
-           class="pagination__page">{{ p }}</a>
-      {% endif %}
-    {% endfor %}
+  <!-- Форма фильтрации -->
+  <div class="orders_control">
+    <form method="get" class="orders_control__form">
+      <!-- Сфера -->
+      <div class="form-item">
+        <div class="orders_control__radios">
+          {% for sphere in spheres %}
+          <label class="orders_control__toggle-btn" data-sphere-id="{{ sphere.id }}">
+            <input type="radio" name="sphere" value="{{ sphere.id }}" hidden
+              {% if filter.sphere_id|stringformat:"s" == sphere.id|stringformat:"s" %}checked{% endif %}>
+            <span>{{ sphere.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <!-- Подсферы -->
+      <div class="form-item" id="sphere_types_container">
+        {% for sphere in spheres %}
+        <div class="sphere_types_group" data-sphere-id="{{ sphere.id }}">
+          <span class="label">Подсферы:</span>
+          <div class="orders_control__radios">
+            {% for st in sphere.spheretype_set.all %}
+            <label class="orders_control__toggle-btn orders_control__toggle-btn--small">
+              <input type="checkbox" name="sphere_types" value="{{ st.id }}" hidden
+                {% if st.id in filter.sphere_types_ids %}checked{% endif %}>
+              <span>{{ st.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <!-- Кнопки -->
+      <div class="form-item">
+        <button type="submit" class="button-submit">Применить фильтры</button>
+        <a href="{% url 'freelancers' %}" class="button-reset">Сбросить</a>
+      </div>
+    </form>
   </div>
-{% endif %}
 
-  {% if freelancers %}
-    <ul class="freelancers-list">
-      {% for user in freelancers %}
-      <li class="freelancer-card">
-        <h3 class="freelancer-card__name">
-          <a href="{% url 'portfolio_detail' user.pk %}" class="profile__link">
-            {{ user.full_name|default:user.username }}
-          </a>
-        </h3>
-
-        <p class="freelancer-card__snippet">
-          {{ user.portfolio.description|truncatewords:20 }}
-        </p>
-
-        <div class="freelancer-card__meta">
-          <span class="freelancer-card__label">Сфера:</span>
-          <strong>
-            {{ user.portfolio.sphere.name }} →
-            {{ user.portfolio.sphere_type.name }}
-          </strong>
-        </div>
-
-        <div class="freelancer-card__rates">
-          <span class="freelancer-card__label">Ставка в час:</span>
-          <strong>{{ user.portfolio.hourly_rate }} ₽</strong>
-          <span class="freelancer-card__label ml-4">Ставка в месяц:</span>
-          <strong>{{ user.portfolio.monthly_rate }} ₽</strong>
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
-
-    {% if freelancers.has_other_pages %}
-    <div class="pagination">
+  <!-- Верхняя пагинация -->
+  {% if freelancers.has_other_pages %}
+    <div class="pagination pagination--top">
       {% for p in page_range %}
         {% if p == '…' %}
           <span class="pagination__ellipsis">…</span>
@@ -69,8 +63,57 @@
     </div>
   {% endif %}
 
+  <!-- Список фрилансеров -->
+  {% if freelancers %}
+    <ul class="freelancers-list">
+      {% for user in freelancers %}
+      <li class="freelancer-card">
+        <h3 class="freelancer-card__name">
+          <a href="{% url 'portfolio_detail' user.pk %}" class="profile__link">
+            {{ user.full_name|default:user.username }}
+          </a>
+        </h3>
+        <p class="freelancer-card__snippet">
+          {{ user.portfolio.description|truncatewords:20 }}
+        </p>
+        <div class="freelancer-card__meta">
+          <span class="freelancer-card__label">Сфера:</span>
+          <strong>
+            {{ user.portfolio.sphere.name }} →
+            {{ user.portfolio.sphere_type.name }}
+          </strong>
+        </div>
+        <div class="freelancer-card__rates">
+          <span class="freelancer-card__label">Ставка в час:</span>
+          <strong>{{ user.portfolio.hourly_rate }} ₽</strong>
+          <span class="freelancer-card__label ml-4">Ставка в месяц:</span>
+          <strong>{{ user.portfolio.monthly_rate }} ₽</strong>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
   {% else %}
     <p class="empty-state">Пока нет фрилансеров с портфолио.</p>
   {% endif %}
+
+  <!-- Нижняя пагинация -->
+  {% if freelancers.has_other_pages %}
+    <div class="pagination pagination--bottom">
+      {% for p in page_range %}
+        {% if p == '…' %}
+          <span class="pagination__ellipsis">…</span>
+        {% elif p == freelancers.number %}
+          <span class="pagination__current">{{ p }}</span>
+        {% else %}
+          <a href="?page={{ p }}{% if get_params %}&{{ get_params }}{% endif %}"
+             class="pagination__page">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'path/to/filter.js' %}"></script>
 {% endblock %}
