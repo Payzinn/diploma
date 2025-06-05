@@ -586,6 +586,14 @@ def chat_detail(request, chat_id):
     if request.user not in (chat.client, chat.freelancer):
         raise PermissionDenied
 
+    accepted_response = Response.objects.filter(
+        order=chat.order, status='Accepted'
+    ).first()
+
+    order_price = accepted_response.responser_price if accepted_response else None
+
+    client_name = chat.order.client.full_name or chat.order.client.username
+
     if request.method == 'POST':
         form = MessageForm(request.POST)
         if form.is_valid():
@@ -620,8 +628,9 @@ def chat_detail(request, chat_id):
         'chat': chat,
         'messages': chat.messages.select_related('sender').all(),
         'form': form,
+        'order_price': order_price,
+        'client_name': client_name,
     })
-
 
 
 @login_required

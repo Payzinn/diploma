@@ -15,10 +15,24 @@
     <a href="{% url 'order_detail' chat.order.pk %}" class="profile__link">{{ chat.order.title }}</a>
   </p>
   <p class="chat__meta">
+    <strong>Заказчик:</strong>
+    <a href="{% url 'profile_detail' chat.order.client.pk %}" class="profile__link">
+      {{ client_name }}
+    </a>
+  </p>
+  <p class="chat__meta">
     <strong>Фрилансер:</strong>
     <a href="{% url 'profile_detail' chat.freelancer.pk %}" class="profile__link">
       {{ chat.freelancer.full_name|default:chat.freelancer.username }}
     </a>
+  </p>
+  <p class="chat__meta">
+    <strong>Цена заказа:</strong>
+    {% if order_price %}
+      {{ order_price }} ₽
+    {% else %}
+      Не указана
+    {% endif %}
   </p>
 
   {% if request.user == chat.order.client and chat.order.status == 'InWork' %}
@@ -43,12 +57,12 @@
   {% endif %}
 
   <div
-  id="chat-window"
-  class="chat__window"
-  data-chat-id="{{ chat.pk }}"
-  data-current-user-id="{{ user.pk }}"
-  data-freelancer-id="{{ chat.freelancer.pk }}"
->
+    id="chat-window"
+    class="chat__window"
+    data-chat-id="{{ chat.pk }}"
+    data-current-user-id="{{ user.pk }}"
+    data-freelancer-id="{{ chat.freelancer.pk }}"
+  >
     {% for msg in messages %}
       {% ifchanged msg.timestamp|date:'Y-m-d' %}
         <div class="chat__date-separator">{{ msg.timestamp|date:'d.m.Y' }}</div>
