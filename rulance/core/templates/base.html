@@ -55,9 +55,6 @@
                     <span>{{ user.username }}</span>
                     </div>
                     <div class="dropdown__content">
-                    <a href="{% url 'switch_role' %}" class="dropdown__item">
-                        Переключиться на {% if user.role == 'Freelancer' %}Заказчика{% else %}Фрилансера{% endif %}
-                    </a>
                     <div class="dropdown__divider"></div>
                     <a href="{% url 'profile' %}" class="dropdown__item">Профиль</a>
                     <form method="post" action="{% url 'logout' %}" class="dropdown__form">
@@ -94,6 +91,7 @@
         });
     </script>
 
+{% include 'includes/modal-orders.html' %}
 {% include 'includes/confirm-modal.html' %}
 {% include 'includes/modal-sphere.html' %}
 

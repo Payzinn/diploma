@@ -34,4 +34,6 @@ urlpatterns = [
     path('recharge/', views.recharge_balance, name='recharge_balance'),
     path('recharge/confirm/', views.confirm_recharge, name='confirm_recharge'),
     path('review/create/<int:order_id>/', views.review_create, name='review_create'),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('profile/<int:pk>/send-invitation/', views.send_order_invitation, name='send_order_invitation'),
+    path('invitation/<int:pk>/delete/', views.delete_order_invitation, name='delete_order_invitation'),
+    ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

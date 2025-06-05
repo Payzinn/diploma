@@ -314,3 +314,26 @@ class Review(models.Model):
 
     def __str__(self):
         return f'Отзыв на заказ {self.order.title} от {self.client.username} для {self.freelancer.username}'
+    
+class OrderInvitation(models.Model):
+    order = models.ForeignKey(
+        'Order',
+        on_delete=models.CASCADE,
+        related_name='invitations',
+        verbose_name='Заказ'
+    )
+    freelancer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='received_invitations',
+        verbose_name='Фрилансер'
+    )
+    created_at = models.DateTimeField('Дата отправки', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Приглашение на заказ'
+        verbose_name_plural = 'Приглашения на заказы'
+        unique_together = [('order', 'freelancer')]  
+
+    def __str__(self):
+        return f'Приглашение на {self.order.title} для {self.freelancer.username}'

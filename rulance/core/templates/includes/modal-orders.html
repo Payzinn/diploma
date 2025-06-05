@@ -1,0 +1,20 @@
+{% if not is_own and request.user.role == 'Client' and profile_user.role == 'Freelancer' %}
+
+  <div id="orderModal" class="modal">
+    <div class="modal-content">
+      <span class="close">×</span>
+      <h2>Выберите заказ для предложения</h2>
+      <div class="order-list">
+        {% for order in client_orders %}
+        <div class="order-block">
+          <h3 class="js-send-invitation" 
+              data-freelancer-id="{{ profile_user.pk }}" 
+              data-order-id="{{ order.pk }}">
+            {{ order.title }}
+          </h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}

@@ -612,11 +612,12 @@ body {
     margin-top: 2rem;
   }
   .profile__tab {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     color: #aaa;
     text-decoration: none;
+    text-align: center;
   }
   .profile__tab.active {
     border-color: #4A90E2;
@@ -2296,4 +2297,15 @@ empty-state
   text-align: center;
   color: #6B7280;
   font-size: 1rem;
+}
+.order-block h3.js-send-invitation {
+    cursor: pointer;
+    padding: 10px;
+    background: #f0f0f0;
+    color: black;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+.order-block h3.js-send-invitation:hover {
+    background: #e0e0e0;
 }

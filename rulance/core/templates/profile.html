@@ -44,6 +44,9 @@
         {% if is_own and profile_user.role == 'Client' %}
           <a href="{% url 'make_order' %}" class="profile__link">Разместить заказ</a>
         {% endif %}
+            {% if not is_own and request.user.role == 'Client' and profile_user.role == 'Freelancer' %}
+          <button class="button-small js-open-invitation-modal">Предложить заказ</button>
+          {% endif %}
         {% if profile_user.role == 'Freelancer' and has_portfolio %}
           <a href="{% url 'portfolio_detail' profile_user.pk %}" class="profile__link">Портфолио</a>
         {% endif %}
@@ -52,6 +55,7 @@
         {% endif %}
       </div>
     </div>
+
   </section>
 
   {% if not is_own and profile_user.role == 'Freelancer' and freelancer_stats %}
@@ -98,7 +102,7 @@
     {% endif %}
   {% endif %}
 
-  <!-- Заказы другого заказчика -->
+<!-- Заказы другого заказчика -->
 {% if profile_user.role == 'Client' and not is_own %}
     <section class="client-orders container">
       <h2 class="page_header">
@@ -172,6 +176,9 @@
           Отменённые <span class="profile__badge" data-tab="cancelled">{{ cancelled.count }}</span>
         </a>
         {% if profile_user.role == 'Freelancer' %}
+        <a href="?tab=invitations" class="profile__tab {% if current_tab == 'invitations' %}active{% endif %}">
+          Приглашения <span class="profile__badge" data-tab="invitations">{{ invitations.count }}</span>
+        </a>
           <a href="?tab=reviews"
              class="profile__tab {% if current_tab == 'reviews' %}active{% endif %}">
             Отзывы <span class="profile__badge" data-tab="reviews">{{ reviews.count }}</span>
@@ -180,6 +187,41 @@
       </div>
 
       <div class="profile__tab-content">
+        {% if current_tab == 'invitations' and profile_user.role == 'Freelancer' %}
+        {% if invitations %}
+          <ul class="orders-list">
+            {% for invitation in invitations %}
+              <li class="order-item">
+                <h3 class="order-item__title">
+                  <a href="{% url 'order_detail' invitation.order.pk %}" class="order-item__link">
+                    {{ invitation.order.title }}
+                  </a>
+                </h3>
+                <div class="order-item__meta">
+                  <span>Заказчик:</span>
+                  <strong>
+                    <a href="{% url 'profile_detail' invitation.order.client.pk %}" class="profile__link">
+                      {{ invitation.order.client.full_name|default:invitation.order.client.username }}
+                    </a>
+                  </strong>
+                </div>
+                <div class="order-item__date">
+                  Отправлено: {{ invitation.created_at|date:"d.m.Y H:i" }}
+                </div>
+                <div class="order-item__actions">
+                  <form action="{% url 'delete_order_invitation' invitation.pk %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="button-small button-small--danger">Удалить</button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-state text-center">Нет приглашений.</p>
+        {% endif %}
+      {% endif %}
+      
         {% if current_tab == 'orders' and profile_user.role == 'Client' %}
           {% if open_orders %}
             <ul class="orders-list">

@@ -4,7 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db.models import Count, Q
-from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment, Review
+from .models import Sphere, SphereType, Portfolio, User, OrderFile, Order, Response, Notification, Chat, Message, Payment, Review, OrderInvitation
 from .forms import  UserRegisterForm, UserProfileForm, AvatarForm, PortfolioForm, OrderForm, ResponseForm, MessageForm, ReviewForm, FreelancerFilterForm
 from django.core.exceptions import PermissionDenied    
 from django.contrib import messages
@@ -18,7 +18,7 @@ import stripe
 from django.conf import settings
 from decimal import Decimal
 from django.db import transaction
-
+from urllib.parse import urlencode
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def index(request):
@@ -189,27 +189,26 @@ def profile(request, pk=None):
     }
 
     client_orders = []
-    if profile_user.role == 'Client' and not is_own:
+    if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own:
         qs = (
             Order.objects
-                 .filter(client=profile_user, status='Open')  
-                 .annotate(
-                     responses_count=Count(
-                         'responses',
-                         filter=Q(responses__status='Pending')
-                     )
-                 )
-                 .select_related('sphere', 'sphere_type')
+            .filter(client=request.user, status='Open')
+            .annotate(
+                responses_count=Count(
+                    'responses',
+                    filter=Q(responses__status='Pending')
+                )
+            )
+            .select_related('sphere', 'sphere_type')
         )
-        my_resps = Response.objects.filter(order__client=profile_user, user=request.user)
+        my_resps = Response.objects.filter(order__client=request.user, user=profile_user)
         resp_map = {r.order_id: r for r in my_resps}
         for o in qs:
             o.user_response = resp_map.get(o.pk)
             client_orders.append(o)
     context['client_orders'] = client_orders
 
-    orders_count = len(client_orders) if profile_user.role == 'Client' and not is_own else 0
-
+    orders_count = len(client_orders) if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own else 0
     freelancer_stats = None
     reviews = None
     if not is_own and profile_user.role == 'Freelancer':
@@ -294,12 +293,17 @@ def profile(request, pk=None):
         if profile_user.role == 'Client':
             allowed_tabs = ['orders', 'pending', 'in_work', 'completed', 'cancelled']
         else:
-            allowed_tabs = ['pending', 'in_work', 'completed', 'cancelled', 'reviews']
+            allowed_tabs = ['pending', 'in_work', 'completed', 'cancelled', 'reviews', 'invitations']
 
         default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
         current_tab = request.GET.get('tab', default_tab)
         if current_tab not in allowed_tabs:
             current_tab = default_tab
+
+        invitations = []
+        if profile_user.role == 'Freelancer':
+            invitations = OrderInvitation.objects.filter(freelancer=profile_user).select_related('order', 'order__client')
+            context['invitations'] = invitations
 
         context.update({
             'tab_label': tab_label,
@@ -309,6 +313,7 @@ def profile(request, pk=None):
             'cancelled': cancelled,
             'current_tab': current_tab,
             'open_orders': open_orders,  
+            'invitations': invitations,
             'orders_count': len(open_orders) if profile_user.role == 'Client' and is_own else orders_count,
         })
 
@@ -826,3 +831,54 @@ def review_create(request, order_id):
         'freelancer': freelancer,
     }
     return render(request, 'review_create.html', context)
+
+@login_required
+def send_order_invitation(request, pk):
+    if request.method == 'POST':
+        profile_user = get_object_or_404(User, pk=pk, role='Freelancer')
+        client = request.user
+        if client.role != 'Client':
+            raise PermissionDenied("Только заказчики могут отправлять приглашения.")
+
+        order_id = request.POST.get('order_id')
+        order = get_object_or_404(Order, pk=order_id, client=client, status='Open')
+
+        if OrderInvitation.objects.filter(order=order, freelancer=profile_user).exists():
+            return JsonResponse({'success': False, 'error': 'Приглашение уже отправлено этому фрилансеру.'})
+
+        OrderInvitation.objects.create(
+            order=order,
+            freelancer=profile_user,
+        )
+
+        verb = f'Заказчик {client.username} отправил вам приглашение на заказ "{order.title}".'
+        link = reverse('profile') + 'invitations'
+        note = Notification.objects.create(user=profile_user, verb=verb, link=link)
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'notifications_{profile_user.id}',
+            {
+                'type': 'notif_message',
+                'data': {
+                    'id': note.id,
+                    'verb': note.verb,
+                    'link': note.get_absolute_url(),
+                    'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                }
+            }
+        )
+
+        return JsonResponse({'success': True, 'message': 'Приглашение отправлено.'})
+    return JsonResponse({'success': False, 'error': 'Неверный запрос.'})
+
+@login_required
+def delete_order_invitation(request, pk):
+    invitation = get_object_or_404(OrderInvitation, pk=pk, freelancer=request.user)
+    if request.method == 'POST':
+        invitation.delete()
+        base_url = reverse('profile')  
+        query_string = urlencode({'tab': 'invitations'})  
+        url = f"{base_url}?{query_string}"  
+        return redirect(url)
+    return redirect('profile')  
