@@ -99,7 +99,7 @@
   {% endif %}
 
   <!-- Заказы другого заказчика -->
-  {% if profile_user.role == 'Client' and not is_own %}
+{% if profile_user.role == 'Client' and not is_own %}
     <section class="client-orders container">
       <h2 class="page_header">
         Заказы {{ profile_user.full_name|default:profile_user.username }}
@@ -144,7 +144,7 @@
         <p class="orders__empty">У этого пользователя пока нет заказов.</p>
       {% endif %}
     </section>
-  {% endif %}
+{% endif %}
 
   {% if is_own %}
     <section class="profile__responses container">

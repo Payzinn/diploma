@@ -192,7 +192,7 @@ def profile(request, pk=None):
     if profile_user.role == 'Client' and not is_own:
         qs = (
             Order.objects
-                 .filter(client=profile_user, status='InWork')
+                 .filter(client=profile_user, status='Open')  
                  .annotate(
                      responses_count=Count(
                          'responses',
