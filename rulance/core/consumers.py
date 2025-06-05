@@ -3,7 +3,6 @@ import pytz
 from django.urls import reverse
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
-
 from django.contrib.auth import get_user_model
 from .models import Chat, Message, Order, Notification, Response, User
 from .utils import update_profile_tab
@@ -147,10 +146,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             resp  = await self.get_accepted_response(chat.order.pk, chat.freelancer.pk)
             price = resp.responser_price
             if not await self._has_funds(user.id, float(price)):
-                await self.send(text_data=json.dumps({
-                    'type':    'chat.error',
-                    'message': 'Недостаточно средств на балансе для завершения заказа.'
-                }))
+                msg = await database_sync_to_async(Message.objects.create)(
+                    chat=chat,
+                    sender=system,
+                    text='Недостаточно средств на балансе для завершения заказа.',
+                    is_system=True,
+                    extra_data={'type': 'error', 'message': 'insufficient_funds'}
+                )
+                await self._send_system_message(msg)
                 return
             msg = await database_sync_to_async(Message.objects.create)(
                 chat=chat, sender=system,
@@ -223,15 +226,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type':          'chat.message',
             'message':       msg.text,
             'sender':        'system',
-            'sender_id':     msg.sender.id if msg.sender else None,
-            'avatar_url':    msg.sender.avatar.url if msg.sender and msg.sender.avatar else '',
-            'sender_full_name': msg.sender.full_name or msg.sender.username if msg.sender else 'Система',
+            'sender_id':     None, 
+            'avatar_url':    '',   
+            'sender_full_name': 'Система',
             'time':          ts.strftime('%H:%M'),
             'date':          ts.strftime('%Y-%m-%d'),
             'date_readable': ts.strftime('%d.%m.%Y'),
             'is_system':     True,
-            'extra_data':    msg.extra_data,
-            'message_type':  msg.extra_data.get('type','') if msg.extra_data else '',
+            'extra_data':    msg.extra_data or {},
+            'message_type':  msg.extra_data.get('type', '') if msg.extra_data else '',
         }
         await self.channel_layer.group_send(self.group_name, payload)
 
