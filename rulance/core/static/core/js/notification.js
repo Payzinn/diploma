@@ -7,7 +7,7 @@ function showPopup(message, type = 'success') {
   notification.style.right = '20px';
   setTimeout(() => {
     notification.style.right = '-300px';
-  }, 3000);
+  }, 1000);
 }
 
 function updateSeparators(list) {

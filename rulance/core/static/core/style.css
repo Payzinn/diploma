@@ -2299,13 +2299,19 @@ empty-state
   font-size: 1rem;
 }
 .order-block h3.js-send-invitation {
+    margin: 0;
+    padding: 8px 12px;
+    background: #2C3334;
+    border-radius: 4px;
     cursor: pointer;
-    padding: 10px;
-    background: #f0f0f0;
-    color: black;
-    border-radius: 5px;
-    transition: background 0.3s;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 .order-block h3.js-send-invitation:hover {
-    background: #e0e0e0;
+    background: #3B82F6;
+    color: #FFFFFF;
+}
+.order-list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
