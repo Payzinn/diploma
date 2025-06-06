@@ -25,39 +25,91 @@ body {
     color: #FFFFFF;
     font-family: 'Roboto', sans-serif;
 }
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+.login-page__errors {
+  margin-top: 1rem;
+}
+
 /* Header */
 .header {
-    background-color: #090E0F;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background-color: #090E0F;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 2000; 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header__logo {
-    font-size: 24px;
-    font-weight: 700;
-    color: #FFFFFF;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
 .header__nav {
-    display: flex;
-    gap: 15px;
+  display: flex;
+  gap: 15px;
 }
 
 .header__link {
-    color: #FFFFFF;
-    text-decoration: none;
-    padding: 8px 12px;
-    transition: color 0.2s;
+  color: #FFFFFF;
+  text-decoration: none;
+  padding: 8px 12px;
+  transition: color 0.2s;
 }
 
 .header__link.active {
-    color: #3B82F6;
+  color: #3B82F6;
 }
 
 .header__link:hover:not(.active) {
-    color: #60A5FA;
+  color: #60A5FA;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0;
+}
+.pagination--top {
+  position: sticky;
+  top: 85px; 
+  z-index: 1000;
+  background-color: #1e2728;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 10px 0;
+  display: flex !important;
+}
+.pagination--bottom {
+  display: flex !important;
+}
+.pagination__prev,
+.pagination__next,
+.pagination__page {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+.pagination__current {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.pagination__ellipsis {
+  padding: 6px 10px;
 }
 
 /* Dropdown */
@@ -87,8 +139,10 @@ body {
     right: 0;
     background: #2D3748;
     border-radius: 8px;
+    overflow-y: auto;
+    max-height: 300px;
     padding: 10px;
-    min-width: 200px;
+    width: 200px;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -130,6 +184,15 @@ body {
 
 .notification-item {
   list-style: none;
+  position: relative;
+  padding: 10px;
+}
+
+.notification-link {
+  display: block;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  text-decoration: none;
+  padding: 10px;
 }
 
 .text-right {
@@ -441,6 +504,28 @@ body {
     margin: 0 auto;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
+
+  .freelancer-stats {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.stats__item {
+  font-size: 16px;
+}
+
+.stats__item strong {
+  margin-right: 5px;
+}
   
   /* Аватар */
   .profile__avatar-wrapper {
@@ -527,11 +612,12 @@ body {
     margin-top: 2rem;
   }
   .profile__tab {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     color: #aaa;
     text-decoration: none;
+    text-align: center;
   }
   .profile__tab.active {
     border-color: #4A90E2;
@@ -546,9 +632,13 @@ body {
     font-size: 0.85rem;
   }
   .responses-list {
-    list-style: none;
+    display: flex;
     margin: 1rem 0;
-    padding: 0;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .responses-list li{
+    list-style: none;
   }
   .response-item {
     background: #2D3335;
@@ -1045,7 +1135,7 @@ body {
 
 .notification {
     position: fixed;
-    top: 20px;
+    top: 100px;
     right: -300px; 
     width: 250px;
     padding: 15px;
@@ -1066,6 +1156,55 @@ body {
   list-style: none;
 }
 
+.notifications-list{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notifications-list a{
+  text-decoration: none;
+}
+
+.notifications-list hr{
+  color: blue;
+}
+
+.notif-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+}
+.notification-item {
+  position: relative;
+  padding-right: 10px; 
+}
+.notification-item:hover .notif-close {
+  color: #666;
+}
+
+.notification-delete {
+  background: none;
+  border: none;
+  color: #f00;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 5px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.notification-link{
+  white-space: normal; 
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
 
 /* ORDERS */
 .orders {
@@ -1074,7 +1213,10 @@ body {
   .orders__title {
     margin-bottom: 32px;
   }
-  
+  .gap{
+    display: flex;
+    gap: 8px;
+  }
   .orders-list {
     display: flex;
     margin: 1rem 0;
@@ -1117,6 +1259,9 @@ body {
     font-size: 0.95rem;
     line-height: 1.4;
     margin-bottom: 16px;
+    white-space: normal; 
+    overflow-wrap: break-word; 
+    word-break: break-word; 
   }
   
   .order-item__meta,
@@ -1299,8 +1444,14 @@ body {
 }
 
 .order-detail__description {
-  color: #F3F4F6; font-size: 1rem; line-height: 1.6; margin: 0;
+  color: #F3F4F6; 
+  font-size: 1rem; 
+  margin: 0;
+  white-space: normal; 
+  overflow-wrap: break-word; 
+  word-break: break-word; 
 }
+
 .order-detail__dl {
   margin: 0;
   padding: 0;
@@ -1533,8 +1684,10 @@ body {
 .response-detail__description {
   color: #F3F4F6;
   font-size: 1rem;
-  line-height: 1.6;
   margin: 0;
+  white-space: normal; 
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .response-detail__dl {
@@ -1686,24 +1839,21 @@ empty-state
   background: #252D2E;
   border-radius: 8px;
   padding: 16px;
-  max-height: 600px;        
+  height: 600px;        
   overflow-y: auto;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
 }
 
-/* Общее оформление одного сообщения */
 .chat__message {
   display: flex;
   align-items: flex-start;
   margin-bottom: 12px;
 }
 
-/* Сообщения текущего пользователя — выравниваем вправо */
 .chat__message--self {
   justify-content: flex-end;
 }
 
-/* Аватарка */
 .chat__avatar {
   width: 32px;
   height: 32px;
@@ -1712,12 +1862,10 @@ empty-state
   margin-right: 8px;
 }
 
-/* Если своё сообщение, аватар слева не нужен — сдвигаем тело вправо */
 .chat__message--self .chat__avatar {
   display: none;
 }
 
-/* Тело сообщения: имя, текст, время */
 .chat__body {
   background: #1C2526;
   border-radius: 6px;
@@ -1726,7 +1874,6 @@ empty-state
   position: relative;
 }
 
-/* Имя отправителя */
 .chat__body strong {
   display: block;
   color: #3B82F6;
@@ -1734,7 +1881,6 @@ empty-state
   margin-bottom: 4px;
 }
 
-/* Текст сообщения */
 .chat__body p {
   margin: 0 0 4px;
   color: #F3F4F6;
@@ -1742,7 +1888,6 @@ empty-state
   line-height: 1.4;
 }
 
-/* Время отправки сообщения */
 .chat__time {
   display: block;
   font-size: 0.75rem;
@@ -1763,7 +1908,6 @@ empty-state
   color: rgba(255,255,255,0.7);
 }
 
-/* Форма ввода сообщения*/
 .chat__form {
   display: flex;
   gap: 8px;
@@ -1794,6 +1938,7 @@ empty-state
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s, box-shadow 0.2s;
+  width: 120px;
 }
 .chat__form .button:hover {
   background-color: #2563EB;
@@ -1879,4 +2024,294 @@ empty-state
   text-align: center;
   color: #6B7280;
   font-size: 1rem;
+}
+
+/* recharge */
+.header__balance {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 15px;
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.header__balance-icon {
+    margin-right: 5px;
+    font-size: 18px;
+}
+
+.header__balance:hover {
+    color: #007bff;
+}
+
+.recharge__form {
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.stripe-card {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+#card-errors {
+    color: red;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+/* === REVIEW CREATE === */
+.review-create {
+  margin-bottom: 50px;
+}
+.review-create__freelancer {
+  margin-bottom: 24px;
+  text-align: center;
+  color: #F3F4F6;
+}
+.review-create__freelancer .profile__link {
+  color: #3B82F6;
+  text-decoration: none;
+}
+.review-create__freelancer .profile__link:hover {
+  color: #2563EB;
+}
+
+.review-create__form {
+  background: #252D2E;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+.review-create__group {
+  margin-bottom: 20px;
+}
+.form-label {
+  display: block;
+  color: #E5E7EB;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.review-create__rating {
+  display: flex;
+  gap: 12px;
+}
+.checkbox-btn {
+  position: relative;
+  padding: 8px 16px;
+  background: #2C3334;
+  color: #A1A1AA;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+}
+.checkbox-btn input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.checkbox-btn__label {
+  margin-left: 8px;
+}
+.checkbox-btn:hover {
+  background: #3A3F46;
+}
+.checkbox-btn.active {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+#id_text {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  color: #F3F4F6;
+  background-color: #2C3334;
+  border: 1px solid #3A3F46;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#id_text:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+}
+
+.review-create__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.button-submit {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.button-submit:hover {
+  background-color: #2563EB;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.button-reset {
+  background-color: #6B7280;
+  color: #FFFFFF;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.button-reset:hover {
+  background-color: #4B5563;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.error-message {
+  color: #EF4444;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+/* === REVIEWS LIST STYLES === */
+.reviews-list {
+  display: flex;
+  margin: 1rem 0;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-item {
+  background: #252D2E;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.review-item:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+  transform: translateY(-2px);
+}
+
+.review-item__order,
+.review-item__client {
+  font-size: 1.25rem;
+  color: #3B82F6;
+  margin: 0 0 12px;
+}
+.review-item__order a,
+.review-item__client a {
+  text-decoration: none;
+  color: inherit;
+}
+.review-item__order a:hover,
+.review-item__client a:hover {
+  text-decoration: underline;
+  color: #4FA3FF;
+}
+
+.review-item__text {
+  flex-grow: 1;
+  color: #F3F4F6;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 16px;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.review-item__rating,
+.review-item__date {
+  font-size: 0.875rem;
+  color: #A1A1AA;
+  margin-bottom: 8px;
+}
+.review-item__rating span,
+.review-item__date span {
+  color: #E5E7EB;
+  font-weight: 500;
+}
+.review-item__date {
+  margin-top: auto;
+  font-size: 0.8rem;
+  color: #6B7280;
+}
+
+.reviews__empty {
+  text-align: center;
+  color: #6B7280;
+  font-size: 1rem;
+}
+.order-block h3.js-send-invitation {
+    margin: 0;
+    padding: 8px 12px;
+    background: #2C3334;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.order-block h3.js-send-invitation:hover {
+    background: #3B82F6;
+    color: #FFFFFF;
+}
+.order-list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
