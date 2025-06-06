@@ -96,7 +96,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="empty-state text-center">Нет отзывов.</p>
+          <p class="orders__empty">Нет отзывов.</p>
         {% endif %}
       </section>
     {% endif %}
@@ -218,7 +218,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <p class="empty-state text-center">Нет приглашений.</p>
+          <p class="orders__empty">Нет приглашений.</p>
         {% endif %}
       {% endif %}
       
@@ -314,7 +314,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center">
+            <p class="orders__empty">
               {% if profile_user.role == 'Client' %}
                 На ваши заказы ещё никто не откликнулся.
               {% else %}
@@ -351,7 +351,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center">Нет заказов в работе.</p>
+            <p class="orders__empty">Нет заказов в работе.</p>
           {% endif %}
 
         {% elif current_tab == 'completed' %}
@@ -394,7 +394,7 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="empty-state text-center">Нет завершённых заказов.</p>
+              <p class="orders__empty">Нет завершённых заказов.</p>
             {% endif %}
           {% else %}
             {% if completed %}
@@ -428,7 +428,7 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="empty-state text-center">Нет завершённых заказов.</p>
+              <p class="orders__empty">Нет завершённых заказов.</p>
             {% endif %}
           {% endif %}
 
@@ -504,7 +504,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center">Нет отменённых заказов.</p>
+            <p class="orders__empty">Нет отменённых заказов.</p>
           {% endif %}
 
         {% elif current_tab == 'reviews' and profile_user.role == 'Freelancer' %}
@@ -531,7 +531,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="empty-state text-center">Нет отзывов.</p>
+            <p class="orders__empty">Нет отзывов.</p>
           {% endif %}
         {% endif %}
       </div>
