@@ -100,7 +100,8 @@
   </div>
 
   {% if chat.is_active %}
-    <form id="chat-form" class="chat__form">
+    <form id="chat-form" method="post" class="chat__form">
+      {% csrf_token %}
       <input id="chat-input" type="text" placeholder="Введите сообщение…" autocomplete="off" required>
       <button type="submit" class="button">Отправить</button>
     </form>

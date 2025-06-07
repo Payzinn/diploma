@@ -1,5 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Код для #myModal (сферы)
+    function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+    const csrfToken = getCookie('csrftoken');
+        if (!csrfToken) {
+    console.error('CSRF token not found');
+    return; 
+}
     const sphereModal = document.getElementById('myModal');
     const sphereBtn = document.getElementById('sphere_modal');
     if (sphereModal && sphereBtn) {
@@ -104,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+                                'X-CSRFToken': csrfToken
                             },
                             body: `order_id=${orderId}`
                         });

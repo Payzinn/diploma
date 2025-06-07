@@ -19,6 +19,8 @@ from django.conf import settings
 from decimal import Decimal
 from django.db import transaction
 from urllib.parse import urlencode
+from django.views.decorators.csrf import csrf_protect
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def index(request):
@@ -146,6 +148,7 @@ def orders(request):
         'get_params': get_params,
     })
 
+@csrf_protect
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
@@ -164,7 +167,7 @@ def switch_role(request):
     u.save()
     return redirect('index')
 
-
+@csrf_protect
 def profile(request, pk=None):
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
@@ -319,6 +322,7 @@ def profile(request, pk=None):
 
     return render(request, 'profile.html', context)
 
+@csrf_protect
 @login_required
 def response_reject(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
@@ -326,6 +330,7 @@ def response_reject(request, pk):
     resp.save()
     return redirect(reverse('profile'))
 
+@csrf_protect
 @login_required
 def portfolio_create(request):
     if hasattr(request.user, 'portfolio'):
@@ -364,6 +369,7 @@ def portfolio_detail(request, pk):
         'is_own': is_own,
     })
 
+@csrf_protect
 @login_required
 def portfolio_update(request):
     if not hasattr(request.user, 'portfolio'):
@@ -385,6 +391,7 @@ def portfolio_update(request):
         'is_update': True,
     })
 
+@csrf_protect
 @login_required
 def make_order(request):
     spheres = Sphere.objects.prefetch_related('spheretype_set').all()
@@ -433,6 +440,7 @@ def order_detail(request, pk):
         'response_form': response_form,
     })
 
+@csrf_protect
 @login_required
 def order_respond(request, pk):
     order = get_object_or_404(Order, pk=pk)
@@ -487,6 +495,7 @@ def order_respond(request, pk):
         'response_form': form,
     })
 
+@csrf_protect
 @login_required
 def response_detail(request, pk):
     resp = get_object_or_404(
@@ -504,6 +513,7 @@ def response_detail(request, pk):
         'resp': resp
     })
 
+@csrf_protect
 @login_required
 def response_accept(request, pk):
     response = get_object_or_404(Response, pk=pk)
@@ -552,6 +562,7 @@ def response_accept(request, pk):
     
     return redirect('order_detail', response.order.pk)
 
+@csrf_protect
 @login_required
 def response_reject(request, pk):
     resp = get_object_or_404(Response, pk=pk, order__client=request.user)
@@ -578,13 +589,14 @@ def response_reject(request, pk):
 
     return redirect('profile')
     
+@csrf_protect
 @login_required
 def notifications_list(request):
     qs = request.user.notifications.all()
     qs.filter(is_read=False).update(is_read=True)
     return render(request, 'notifications_list.html', {'notifications': qs})
 
-
+@csrf_protect
 @login_required
 def chat_detail(request, chat_id):
     chat = get_object_or_404(Chat, pk=chat_id)
@@ -637,7 +649,7 @@ def chat_detail(request, chat_id):
         'client_name': client_name,
     })
 
-
+@csrf_protect
 @login_required
 def order_complete(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
@@ -678,6 +690,7 @@ def order_complete(request, order_id):
 
     return redirect('chat_detail', chat_id=chat.pk)
 
+@csrf_protect
 @login_required
 def order_cancel(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
@@ -733,6 +746,7 @@ def delete_notification(request, id):
     notification.delete()
     return JsonResponse({'status': 'ok'})
 
+@csrf_protect
 @login_required
 def order_delete(request, pk):
     if request.method != 'POST':
@@ -752,6 +766,7 @@ def order_delete(request, pk):
 
     return redirect(reverse('profile') + '?tab=orders')
 
+@csrf_protect
 @login_required
 def recharge_balance(request):
     if request.method == 'POST':
@@ -778,6 +793,7 @@ def recharge_balance(request):
         'STRIPE_PUBLISHABLE_KEY': settings.STRIPE_PUBLISHABLE_KEY
     })
 
+@csrf_protect
 @login_required
 def confirm_recharge(request):
     if request.method == 'POST':
@@ -801,6 +817,7 @@ def confirm_recharge(request):
             return JsonResponse({'error': str(e)}, status=400)
     return redirect('profile')
 
+@csrf_protect
 @login_required
 def review_create(request, order_id):
     order = get_object_or_404(Order, pk=order_id, client=request.user, status='Completed')
@@ -832,6 +849,7 @@ def review_create(request, order_id):
     }
     return render(request, 'review_create.html', context)
 
+@csrf_protect
 @login_required
 def send_order_invitation(request, pk):
     if request.method == 'POST':
@@ -872,6 +890,7 @@ def send_order_invitation(request, pk):
         return JsonResponse({'success': True, 'message': 'Приглашение отправлено.'})
     return JsonResponse({'success': False, 'error': 'Неверный запрос.'})
 
+@csrf_protect
 @login_required
 def delete_order_invitation(request, pk):
     invitation = get_object_or_404(OrderInvitation, pk=pk, freelancer=request.user)
