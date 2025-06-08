@@ -10,7 +10,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure--cw4$0yi&57^y!0ef1496
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
-
+CSRF_TRUSTED_ORIGINS = ['https://ru-lance.ru', 'https://www.ru-lance.ru']
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
 
