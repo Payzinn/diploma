@@ -6,9 +6,15 @@
 {% block content %}
   <!-- Карточка профиля -->
   <section class="container profile">
+    {% if not is_own %}
     <h2 class="page_header profile__title">
       {{ profile_user.full_name|default:profile_user.username }}
     </h2>
+    {% else %}
+    <h2 class="page_header profile__title">
+      Мой профиль
+    </h2>
+    {% endif %}
     <div class="profile__card">
       {% if is_own %}
         <form id="avatar-form"
@@ -58,98 +64,97 @@
 
   </section>
 
-  {% if not is_own and profile_user.role == 'Freelancer' and freelancer_stats %}
-    <section class="freelancer-stats container">
-      <h2 class="page_header">Статистика</h2>
-      <div class="stats">
-        <div class="stats__item">
-          <strong>Выполненные заказы:</strong> {{ freelancer_stats.completed }}
-        </div>
-        <div class="stats__item">
-          <strong>Отменённые заказы:</strong> {{ freelancer_stats.cancelled }}
-        </div>
+<!-- Статистика другого фрилансера -->
+{% if profile_user.role == 'Freelancer' and freelancer_stats %}
+  <section class="freelancer-stats container">
+    <h2 class="page_header">Статистика</h2>
+    <div class="stats">
+      <div class="stats__item">
+        <strong>Выполненные заказы:</strong> {{ freelancer_stats.completed }}
       </div>
-    </section>
-    {% if profile_user.role == 'Freelancer' %}
-      <section class="freelancer-reviews container">
-        <h2 class="page_header">Отзывы</h2>
-        {% if reviews %}
-          <ul class="reviews-list">
-            {% for review in reviews %}
-              <li class="review-item">
-                <p class="review-item__order">
-                  Заказ: <a href="{% url 'order_detail' review.order.pk %}">{{ review.order.title }}</a>
-                </p>
-                <p class="review-item__client">
-                  Клиент: <a href="{% url 'profile_detail' review.client.pk %}">{{ review.client.username }}</a>
-                </p>
-                <p class="review-item__rating">
-                  Оценка: <span>{{ review.get_rating_display }}</span>
-                </p>
-                <p class="review-item__text">
-                  {{ review.text }}
-                </p>
-                <p class="review-item__date">
-                  Дата: <span>{{ review.created_at|date:"d.m.Y H:i" }}</span>
-                </p>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="orders__empty">Нет отзывов.</p>
-        {% endif %}
-      </section>
+      <div class="stats__item">
+        <strong>Отменённые заказы:</strong> {{ freelancer_stats.cancelled }}
+      </div>
+    </div>
+  </section>
+  {% if reviews %}
+    <section class="freelancer-reviews container">
+      <h2 class="page_header">Отзывы</h2>
+      <ul class="reviews-list">
+        {% for review in reviews %}
+          <li class="review-item">
+            <p class="review-item__order">
+              Заказ: <a href="{% url 'order_detail' review.order.pk %}">{{ review.order.title }}</a>
+            </p>
+            <p class="review-item__client">
+              Клиент: <a href="{% url 'profile_detail' review.client.pk %}">{{ review.client.username }}</a>
+            </p>
+            <p class="review-item__rating">
+              Оценка: <span>{{ review.get_rating_display }}</span>
+            </p>
+            <p class="review-item__text">
+              {{ review.text }}
+            </p>
+            <p class="review-item__date">
+              Дата: <span>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+            </p>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="orders__empty">Нет отзывов.</p>
     {% endif %}
-  {% endif %}
-
-<!-- Заказы другого заказчика -->
-{% if profile_user.role == 'Client' and not is_own %}
-    <section class="client-orders container">
-      <h2 class="page_header">
-        Заказы {{ profile_user.full_name|default:profile_user.username }}
-      </h2>
-      {% if client_orders %}
-        <ul class="orders-list">
-          {% for order in client_orders %}
-            <li class="order-item">
-              <h3 class="order-item__title">
-                <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
-                  {{ order.title }}
-                </a>
-                <span class="order-item__responses">
-                  <span class="order-item__count">{{ order.responses_count }}</span>
-                </span>
-              </h3>
-              <div class="order-item__meta">
-                <span>Категория:</span>
-                <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
-              </div>
-              <div class="order-item__price">
-                <span>Цена:</span>
-                {% if order.is_negotiable %}
-                  <strong>Договорная</strong>
-                {% else %}
-                  <strong>{{ order.price }} ₽</strong>
-                {% endif %}
-              </div>
-              <div class="order-item__date">
-                Создано: {{ order.created_at|date:"d.m.Y H:i" }}
-              </div>
-              {% if order.user_response %}
-                <div class="order-item__your-response">
-                  <span>Статус вашего отклика:</span>
-                  <strong>{{ order.user_response.get_status_display }}</strong>
-                </div>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="orders__empty">У этого пользователя пока нет заказов.</p>
-      {% endif %}
-    </section>
+  </section>
 {% endif %}
 
+<!-- Заказы другого заказчика -->
+{% if profile_user.role == 'Client' %}
+  <section class="client-orders container">
+    <h2 class="page_header">
+      Заказы {{ profile_user.full_name|default:profile_user.username }}
+    </h2>
+    {% if client_orders %}
+      <ul class="orders-list">
+        {% for order in client_orders %}
+          <li class="order-item">
+            <h3 class="order-item__title">
+              <a href="{% url 'order_detail' order.pk %}" class="order-item__link">
+                {{ order.title }}
+              </a>
+              <span class="order-item__responses">
+                <span class="order-item__count">{{ order.responses_count }}</span>
+              </span>
+            </h3>
+            <div class="order-item__meta">
+              <span>Категория:</span>
+              <strong>{{ order.sphere.name }} → {{ order.sphere_type.name }}</strong>
+            </div>
+            <div class="order-item__price">
+              <span>Цена:</span>
+              {% if order.is_negotiable %}
+                <strong>Договорная</strong>
+              {% else %}
+                <strong>{{ order.price }} ₽</strong>
+              {% endif %}
+            </div>
+            <div class="order-item__date">
+              Создано: {{ order.created_at|date:"d.m.Y H:i" }}
+            </div>
+            {% if request.user.is_authenticated and order.user_response %}
+              <div class="order-item__your-response">
+                <span>Статус вашего отклика:</span>
+                <strong>{{ order.user_response.get_status_display }}</strong>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="orders__empty">У этого пользователя пока нет заказов.</p>
+    {% endif %}
+  </section>
+{% endif %}
+  
   {% if is_own %}
     <section class="profile__responses container">
       <div class="profile__tabs">

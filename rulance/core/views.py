@@ -167,14 +167,17 @@ def switch_role(request):
     u.save()
     return redirect('index')
 
-@csrf_protect
+
 def profile(request, pk=None):
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
     else:
-        profile_user = request.user
+        if request.user.is_authenticated:
+            profile_user = request.user
+        else:
+            return render(request, 'profile.html', {'error': 'Профиль не найден'}, status=404)
 
-    is_own = request.user == profile_user
+    is_own = request.user.is_authenticated and request.user == profile_user
     has_portfolio = hasattr(profile_user, 'portfolio')
 
     if request.method == 'POST' and is_own:
@@ -191,134 +194,120 @@ def profile(request, pk=None):
         'has_portfolio': has_portfolio,
     }
 
-    client_orders = []
-    if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own:
-        qs = (
-            Order.objects
-            .filter(client=request.user, status='Open')
-            .annotate(
-                responses_count=Count(
-                    'responses',
-                    filter=Q(responses__status='Pending')
-                )
-            )
-            .select_related('sphere', 'sphere_type')
-        )
-        my_resps = Response.objects.filter(order__client=request.user, user=profile_user)
-        resp_map = {r.order_id: r for r in my_resps}
-        for o in qs:
-            o.user_response = resp_map.get(o.pk)
-            client_orders.append(o)
-    context['client_orders'] = client_orders
-
-    orders_count = len(client_orders) if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own else 0
     freelancer_stats = None
     reviews = None
-    if not is_own and profile_user.role == 'Freelancer':
+    client_orders = []
+
+    if profile_user.role == 'Freelancer':
         freelancer_stats = {
-            'completed': Response.objects.filter(
-                user=profile_user, status='Accepted', order__status='Completed'
-            ).count(),
-            'cancelled': Response.objects.filter(
-                user=profile_user, status='Accepted', order__status='Cancelled'
-            ).count(),
+            'completed': Response.objects.filter(user=profile_user, status='Accepted', order__status='Completed').count(),
+            'cancelled': Response.objects.filter(user=profile_user, status='Accepted', order__status='Cancelled').count(),
         }
         reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
-        context['freelancer_stats'] = freelancer_stats
-        context['reviews'] = reviews
 
-    if is_own:
-        if profile_user.role == 'Client':
-            tab_label = 'Отклики исполнителей'
-            open_orders = (
+    if profile_user.role == 'Client':
+        client_orders = (
+            Order.objects
+            .filter(client=profile_user, status='Open')
+            .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
+            .select_related('sphere', 'sphere_type')
+        )
+        my_resps = Response.objects.filter(order__client=profile_user) if request.user.is_authenticated else Response.objects.none()
+        resp_map = {r.order_id: r for r in my_resps}
+        for o in client_orders:
+            o.user_response = resp_map.get(o.pk)
+
+    context.update({
+        'freelancer_stats': freelancer_stats,
+        'reviews': reviews,
+        'client_orders': client_orders,
+    })
+
+    if request.user.is_authenticated:
+        if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own:
+            qs = (
                 Order.objects
-                     .filter(client=profile_user, status='Open')
-                     .annotate(
-                         responses_count=Count(
-                             'responses',
-                             filter=Q(responses__status='Pending')
-                         )
-                     )
-                     .select_related('sphere', 'sphere_type')
+                .filter(client=request.user, status='Open')
+                .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
+                .select_related('sphere', 'sphere_type')
             )
-            pending = Response.objects.filter(
-                order__client=profile_user, status='Pending', order__status="Open"
-            ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
-            in_work = Response.objects.filter(
-                order__client=profile_user, status='Accepted', order__status='InWork'
-            ).select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
-            completed = Order.objects.filter(
-                client=profile_user, status='Completed'
-            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
-            for order in completed:
-                order.has_accepted_response = order.responses.filter(status='Accepted').exists()
-            cancelled = Order.objects.filter(
-                client=profile_user, status='Cancelled'
-            ).select_related('sphere', 'sphere_type').prefetch_related('responses')
-        else:
-            tab_label = 'Мои отклики'
-            open_orders = []  
-            pending = Response.objects.filter(
-                user=profile_user, status='Pending'
-            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
-            in_work = Response.objects.filter(
-                user=profile_user, status='Accepted', order__status='InWork'
-            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
-            completed = Response.objects.filter(
-                user=profile_user, status='Accepted', order__status='Completed'
-            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
-            cancelled = Response.objects.filter(
-                user=profile_user, status='Accepted', order__status='Cancelled'
-            ).select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+            my_resps = Response.objects.filter(order__client=request.user, user=profile_user)
+            resp_map = {r.order_id: r for r in my_resps}
+            for o in qs:
+                o.user_response = resp_map.get(o.pk)
+                client_orders.append(o)
+            context['client_orders'] = client_orders
+
+        orders_count = len(client_orders) if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own else 0
+
+        if is_own:
+            if profile_user.role == 'Client':
+                tab_label = 'Отклики исполнителей'
+                open_orders = (
+                    Order.objects
+                    .filter(client=profile_user, status='Open')
+                    .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
+                    .select_related('sphere', 'sphere_type')
+                )
+                pending = Response.objects.filter(order__client=profile_user, status='Pending', order__status="Open").select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
+                in_work = Response.objects.filter(order__client=profile_user, status='Accepted', order__status='InWork').select_related('order', 'user').prefetch_related('order__sphere', 'order__sphere_type')
+                completed = Order.objects.filter(client=profile_user, status='Completed').select_related('sphere', 'sphere_type').prefetch_related('responses')
+                for order in completed:
+                    order.has_accepted_response = order.responses.filter(status='Accepted').exists()
+                cancelled = Order.objects.filter(client=profile_user, status='Cancelled').select_related('sphere', 'sphere_type').prefetch_related('responses')
+            else:
+                tab_label = 'Мои отклики'
+                open_orders = []
+                pending = Response.objects.filter(user=profile_user, status='Pending').select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+                in_work = Response.objects.filter(user=profile_user, status='Accepted', order__status='InWork').select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+                completed = Response.objects.filter(user=profile_user, status='Accepted', order__status='Completed').select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+                cancelled = Response.objects.filter(user=profile_user, status='Accepted', order__status='Cancelled').select_related('order', 'order__client').prefetch_related('order__sphere', 'order__sphere_type')
+                if profile_user.role == 'Freelancer':
+                    reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
+                    context['reviews'] = reviews
+
+            resp_list = list(in_work) + list(completed)
+            order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
+            if profile_user.role == 'Client':
+                chats = Chat.objects.filter(order__client=profile_user, freelancer__in=[r.user for r in in_work])
+                chat_map = {(c.order_id, c.freelancer_id): c for c in chats}
+                for r in resp_list:
+                    if isinstance(r, Response):
+                        r.chat = chat_map.get((r.order_id, r.user_id))
+                    else:
+                        r.chat = None
+            else:
+                chats = Chat.objects.filter(freelancer=profile_user, order_id__in=order_ids)
+                chat_map = {c.order_id: c for c in chats}
+                for r in resp_list:
+                    r.chat = chat_map.get(r.order_id if isinstance(r, Response) else r.pk)
+
+            if profile_user.role == 'Client':
+                allowed_tabs = ['orders', 'pending', 'in_work', 'completed', 'cancelled']
+            else:
+                allowed_tabs = ['pending', 'in_work', 'completed', 'cancelled', 'reviews', 'invitations']
+
+            default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
+            current_tab = request.GET.get('tab', default_tab)
+            if current_tab not in allowed_tabs:
+                current_tab = default_tab
+
+            invitations = []
             if profile_user.role == 'Freelancer':
-                reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
-                context['reviews'] = reviews
+                invitations = OrderInvitation.objects.filter(freelancer=profile_user).select_related('order', 'order__client')
+                context['invitations'] = invitations
 
-        resp_list = list(in_work) + list(completed)
-        order_ids = [r.order_id if isinstance(r, Response) else r.pk for r in resp_list]
-        if profile_user.role == 'Client':
-            chats = Chat.objects.filter(
-                order__client=profile_user,
-                freelancer__in=[r.user for r in in_work]
-            )
-            chat_map = {(c.order_id, c.freelancer_id): c for c in chats}
-            for r in resp_list:
-                if isinstance(r, Response):
-                    r.chat = chat_map.get((r.order_id, r.user_id))
-                else:
-                    r.chat = None
-        else:
-            chats = Chat.objects.filter(freelancer=profile_user, order_id__in=order_ids)
-            chat_map = {c.order_id: c for c in chats}
-            for r in resp_list:
-                r.chat = chat_map.get(r.order_id if isinstance(r, Response) else r.pk)
-
-        if profile_user.role == 'Client':
-            allowed_tabs = ['orders', 'pending', 'in_work', 'completed', 'cancelled']
-        else:
-            allowed_tabs = ['pending', 'in_work', 'completed', 'cancelled', 'reviews', 'invitations']
-
-        default_tab = 'orders' if profile_user.role == 'Client' else 'pending'
-        current_tab = request.GET.get('tab', default_tab)
-        if current_tab not in allowed_tabs:
-            current_tab = default_tab
-
-        invitations = []
-        if profile_user.role == 'Freelancer':
-            invitations = OrderInvitation.objects.filter(freelancer=profile_user).select_related('order', 'order__client')
-            context['invitations'] = invitations
-
-        context.update({
-            'tab_label': tab_label,
-            'pending': pending,
-            'in_work': in_work,
-            'completed': completed,
-            'cancelled': cancelled,
-            'current_tab': current_tab,
-            'open_orders': open_orders,  
-            'invitations': invitations,
-            'orders_count': len(open_orders) if profile_user.role == 'Client' and is_own else orders_count,
-        })
+            context.update({
+                'tab_label': tab_label,
+                'pending': pending,
+                'in_work': in_work,
+                'completed': completed,
+                'cancelled': cancelled,
+                'current_tab': current_tab,
+                'open_orders': open_orders,
+                'invitations': invitations,
+                'orders_count': len(open_orders) if profile_user.role == 'Client' and is_own else orders_count,
+            })
 
     return render(request, 'profile.html', context)
 
