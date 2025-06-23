@@ -169,17 +169,23 @@ def switch_role(request):
 
 
 def profile(request, pk=None):
+    # Если pk передан — отображается чужой профиль
+    # Если нет — текущего пользователя
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
+    # Если pk указан загружаем соответствующего пользователя
     else:
         if request.user.is_authenticated:
             profile_user = request.user
         else:
             return render(request, 'profile.html', {'error': 'Профиль не найден'}, status=404)
 
+    # Проверяем является ли профиль своим
     is_own = request.user.is_authenticated and request.user == profile_user
+    # Проверяем есть ли у пользователя портфолио
     has_portfolio = hasattr(profile_user, 'portfolio')
 
+    # Если отправил POST-запрос (загрузка фотки профиля) и это его профиль — сохраняем аватар
     if request.method == 'POST' and is_own:
         avatar_form = AvatarForm(request.POST, request.FILES, instance=request.user)
         if avatar_form.is_valid():
@@ -188,6 +194,7 @@ def profile(request, pk=None):
         else:
             return JsonResponse({'success': False, 'errors': avatar_form.errors}, status=400)
 
+    # Обычный контекст
     context = {
         'profile_user': profile_user,
         'is_own': is_own,
@@ -198,6 +205,7 @@ def profile(request, pk=None):
     reviews = None
     client_orders = []
 
+    # Статистика и отзывы фрилансера
     if profile_user.role == 'Freelancer':
         freelancer_stats = {
             'completed': Response.objects.filter(user=profile_user, status='Accepted', order__status='Completed').count(),
@@ -205,6 +213,7 @@ def profile(request, pk=None):
         }
         reviews = profile_user.reviews_received.all().select_related('order', 'client').order_by('-created_at')
 
+    # Список открытых заказов клиента с числом откликов
     if profile_user.role == 'Client':
         client_orders = (
             Order.objects
@@ -212,6 +221,7 @@ def profile(request, pk=None):
             .annotate(responses_count=Count('responses', filter=Q(responses__status='Pending')))
             .select_related('sphere', 'sphere_type')
         )
+        # Проверка на отклики от текущего пользователя
         my_resps = Response.objects.filter(order__client=profile_user) if request.user.is_authenticated else Response.objects.none()
         resp_map = {r.order_id: r for r in my_resps}
         for o in client_orders:
@@ -223,6 +233,7 @@ def profile(request, pk=None):
         'client_orders': client_orders,
     })
 
+    # Если клиент смотрит профиль фрилансера — подгружаем свои открытые заказы, на которые он может отправить приглашение
     if request.user.is_authenticated:
         if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own:
             qs = (
@@ -240,6 +251,9 @@ def profile(request, pk=None):
 
         orders_count = len(client_orders) if request.user.role == 'Client' and profile_user.role == 'Freelancer' and not is_own else 0
 
+        # В зависимости от роли формируется список объектов для вкладок
+        # Client: отклики, заказы в работе, завершённые, отменённые
+        # Freelancer: отклики, в работе, завершённые, отменённые, приглашения, отзывы
         if is_own:
             if profile_user.role == 'Client':
                 tab_label = 'Отклики исполнителей'

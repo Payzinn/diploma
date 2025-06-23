@@ -9,6 +9,7 @@ from .utils import update_profile_tab
 
 User = get_user_model()
 
+# Общение в чате
 class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_system_user(self):
@@ -93,12 +94,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         c.save()
 
     async def connect(self):
+        # Получаем ID чата из URL и подключаемся к группе
         self.chat_id    = int(self.scope["url_route"]["kwargs"]["chat_id"])
         self.group_name = f"chat_{self.chat_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
+        # Удаляем соединение из группы при отключении
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
@@ -220,6 +223,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def _send_system_message(self, msg: Message):
+        # Формирует и отправляет системное сообщение в чат-группу
         tz = pytz.timezone('Europe/Moscow')
         ts = msg.timestamp.astimezone(tz)
         payload = {
@@ -239,6 +243,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(self.group_name, payload)
 
     async def _send_user_message(self, msg: Message, user: User):
+        # Формирует и отправляет обычное пользовательское сообщение
         tz = pytz.timezone('Europe/Moscow')
         ts = msg.timestamp.astimezone(tz)
         payload = {
@@ -257,7 +262,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
         await self.channel_layer.group_send(self.group_name, payload)
 
-
+# Уведомления
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         user = self.scope["user"]
@@ -273,7 +278,7 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def notif_message(self, event):
         await self.send_json(event["data"])
 
-
+# Профиль, при обновлении профиля получает и передаёт новые данные
 class ProfileConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope["user"]
