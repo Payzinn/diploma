@@ -138,7 +138,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             reason = data.get('reason','')
             msg = await database_sync_to_async(Message.objects.create)(
                 chat=chat, sender=system,
-                text=f"Заказчик запросил отмену: «{reason}». Согласны?",
+                text=f"""Заказчик запросил отмену по причине:
+                {reason}.
+                Согласны?""",
                 is_system=True,
                 extra_data={'type':'cancel_request','reason':reason}
             )

@@ -841,6 +841,29 @@ def review_create(request, order_id):
             order.has_review = True  
             order.save()
             messages.success(request, 'Отзыв успешно отправлен.')
+
+            verb = f'Новый отзыв от «{request.user.username}» на «{order.title}»'
+            link = reverse('profile_detail', args=[freelancer.pk])
+            note = Notification.objects.create(user=freelancer, verb=verb, link=link)
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{freelancer.id}',
+                {
+                    'type': 'notif_message',
+                    'data': {
+                        'id': note.id,
+                        'verb': note.verb,
+                        'link': note.get_absolute_url(),
+                        'created_at': note.created_at.strftime('%d.%m.%Y %H:%M'),
+                    }
+                }
+            )
+
+            review_count = freelancer.reviews_received.count() 
+            from .utils import update_profile_tab  
+            update_profile_tab(freelancer, 'reviews', review_count)
+
             return redirect('profile')
     else:
         form = ReviewForm()

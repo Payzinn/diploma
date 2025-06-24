@@ -65,7 +65,7 @@
   </section>
 
 <!-- Статистика другого фрилансера -->
-{% if profile_user.role == 'Freelancer' and freelancer_stats %}
+{% if profile_user.role == 'Freelancer' and freelancer_stats and not is_own %}
   <section class="freelancer-stats container">
     <h2 class="page_header">Статистика</h2>
     <div class="stats">
@@ -108,7 +108,7 @@
 {% endif %}
 
 <!-- Заказы другого заказчика -->
-{% if profile_user.role == 'Client' %}
+{% if profile_user.role == 'Client' and not is_own %}
   <section class="client-orders container">
     <h2 class="page_header">
       Заказы {{ profile_user.full_name|default:profile_user.username }}
@@ -280,7 +280,7 @@
                 <li class="order-item gap">
                     <h3 class="order-item__title">
                       <a href="{% url 'order_detail' resp.order.pk %}" class="profile__link">
-                        wetwe
+                        {{ resp.order.title }}
                       </a>
                     </h3>
                   {% if profile_user.role == 'Client' %}

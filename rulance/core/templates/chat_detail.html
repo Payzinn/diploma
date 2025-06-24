@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Чат по заказу «{{ chat.order.title }}»{% endblock %}
+{% block title %}Чат по заказу {{ chat.order.title }}{% endblock %}
 
 {% block content %}
 <section class="container chat" 
          data-chat-id="{{ chat.pk }}" 
          id="chat-page"
          data-status="{{ chat.order.status }}">
-  <h2 class="page_header">Чат по заказу «{{ chat.order.title }}»</h2>
+  <h2 class="page_header">Чат по заказу {{ chat.order.title }}</h2>
 
   <p class="chat__meta">
     <strong>Ссылка на заказ:</strong>
