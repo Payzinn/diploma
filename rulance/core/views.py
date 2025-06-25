@@ -169,8 +169,8 @@ def switch_role(request):
 
 
 def profile(request, pk=None):
-    # Если pk передан — отображается чужой профиль
-    # Если нет — текущего пользователя
+    # Если pk передан - отображается чужой профиль
+    # Если нет - текущего пользователя
     if pk:
         profile_user = get_object_or_404(User, pk=pk)
     # Если pk указан загружаем соответствующего пользователя
@@ -896,7 +896,9 @@ def send_order_invitation(request, pk):
         )
 
         verb = f'Заказчик {client.username} отправил вам приглашение на заказ "{order.title}".'
-        link = reverse('profile') + 'invitations'
+        base_url = reverse('profile')
+        params = urlencode({'tab': 'invitations'})
+        link = f"{base_url}?{params}"
         note = Notification.objects.create(user=profile_user, verb=verb, link=link)
 
         channel_layer = get_channel_layer()
